@@ -1,9 +1,9 @@
-#' @export predict
-predict = function(reg, ...){
-  UseMethod("predict")
+#' @export predictMix
+predictMix = function(reg, ...){
+  UseMethod("predictMix")
 }
 
-predict.MoENormal = function(reg, x, r, type){
+predictMix.MoENormal = function(reg, x, r, type){
 
   n = nrow(x)
   X = cbind(rep(1, nrow(x)), x)
@@ -25,4 +25,4 @@ predict.MoENormal = function(reg, x, r, type){
   }
   return(y)
 }
-.S3method("predict", "MoENormal", predict.MoENormal)
+.S3method("predictMix", "MoENormal", predictMix.MoENormal)
