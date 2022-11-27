@@ -39,9 +39,7 @@ chuteInicial.MoENormal = function(y, X, args){
     "Aleatório" = sample(1:args$g, args$n, replace = T),
     NULL = kmeans(dados, centers = args$g)$cluster
   )
-  print(dim(X))
-  print(length(y))
-  print(length(grupos))
+
   dadosGrupos = lapply(list("X" = X, "y" = y),
                        function(x, grupos) lapply(split(x, grupos), matrix, ncol=dim(as.matrix(x))[2]),
                        grupos = grupos)
