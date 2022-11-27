@@ -6,12 +6,11 @@ chuteInicial.MixNormal = function(Y, X, args){
 
   dados = cbind(Y, X[, -1])
 
-  grupos = tryCatch({
-    if(initGrupo == "Aleatorio") sample(1:args$g, args$n, replace = T)
-    else if(initGrupo == "Kmeans") kmeans(dados, centers = g)$cluster
-    else stop()
-  },
-  error = function(err) kmeans(dados, centers = args$g)$cluster)
+  grupos = switch(args$initGrupo,
+                  "KMeans" = kmeans(dados, centers = g)$cluster,
+                  "Aleatório" = sample(1:args$g, args$n, replace = T),
+                  NULL = kmeans(dados, centers = g)$cluster
+  )
 
 
   dadosGrupos = lapply(list("X" = X, "Y" = y),
@@ -35,12 +34,12 @@ chuteInicial.MoENormal = function(Y, X, args){
   k = ncol(args$R)
   dados = cbind(Y, X[, -1])
 
-  grupos = tryCatch({
-    if(initGrupo == "Aleatorio") sample(1:args$g, args$n, replace = T)
-    else if(initGrupo == "KMeans") kmeans(dados, centers = args$g)$cluster
-    else stop()
-  },
-  error = function(err) kmeans(dados, centers = args$g)$cluster)
+
+  grupos = switch(args$initGrupo,
+    "KMeans" = kmeans(dados, centers = g)$cluster,
+    "Aleatório" = sample(1:args$g, args$n, replace = T),
+    NULL = kmeans(dados, centers = g)$cluster
+  )
 
   dadosGrupos = lapply(list("X" = X, "Y" = y),
                        function(x, grupos) lapply(split(x, grupos), matrix, ncol=dim(as.matrix(x))[2]),

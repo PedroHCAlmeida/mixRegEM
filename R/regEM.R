@@ -11,7 +11,7 @@
 #' @param verbose mostrar a verossimilhança passo a passo
 #' @return resultados finais
 #' @export
-regEM = function(y, x, g = 2, ..., tol = 1E-10, family = "MoENormal",
+regEM = function(y, x, g = 2, ..., tol = 1E-6, family = "MixNormal",
                  grupoReal = NULL, max_iter = 1000, min_iter = 5, verbose = T){
 
   args = list(...)
