@@ -7,9 +7,9 @@ chuteInicial.MixNormal = function(Y, X, args){
   dados = cbind(Y, X[, -1])
 
   grupos = switch(args$initGrupo,
-                  "KMeans" = kmeans(dados, centers = g)$cluster,
+                  "KMeans" = kmeans(dados, centers = args$g)$cluster,
                   "Aleatório" = sample(1:args$g, args$n, replace = T),
-                  NULL = kmeans(dados, centers = g)$cluster
+                  NULL = kmeans(dados, centers = args$g)$cluster
   )
 
 
@@ -36,9 +36,9 @@ chuteInicial.MoENormal = function(Y, X, args){
 
 
   grupos = switch(args$initGrupo,
-    "KMeans" = kmeans(dados, centers = g)$cluster,
+    "KMeans" = kmeans(dados, centers = args$g)$cluster,
     "Aleatório" = sample(1:args$g, args$n, replace = T),
-    NULL = kmeans(dados, centers = g)$cluster
+    NULL = kmeans(dados, centers = args$g)$cluster
   )
 
   dadosGrupos = lapply(list("X" = X, "Y" = y),
