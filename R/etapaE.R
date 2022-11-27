@@ -1,4 +1,4 @@
-etapaE = function(Y, params, medias, args, ...){
+etapaE = function(y, params, medias, args, ...){
   UseMethod("etapaE")
 }
 

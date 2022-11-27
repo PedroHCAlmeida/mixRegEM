@@ -1,10 +1,10 @@
-chuteInicial = function(Y, X, args, ...){
+chuteInicial = function(y, X, args, ...){
   UseMethod("chuteInicial")
 }
 
-chuteInicial.MixNormal = function(Y, X, args){
+chuteInicial.MixNormal = function(y, X, args){
 
-  dados = cbind(Y, X[, -1])
+  dados = cbind(y, X[, -1])
 
   grupos = switch(args$initGrupo,
                   "KMeans" = kmeans(dados, centers = args$g)$cluster,
@@ -12,13 +12,12 @@ chuteInicial.MixNormal = function(Y, X, args){
                   NULL = kmeans(dados, centers = args$g)$cluster
   )
 
-
-  dadosGrupos = lapply(list("X" = X, "Y" = y),
+  dadosGrupos = lapply(list("X" = X, "y" = y),
                        function(x, grupos) lapply(split(x, grupos), matrix, ncol=dim(as.matrix(x))[2]),
                        grupos = grupos)
 
   params = do.call(rbind, mapply(estimaTeta.Normal,
-                                 dadosGrupos$Y,
+                                 dadosGrupos$y,
                                  dadosGrupos$X,
                                  SIMPLIFY = F,
                                  MoreArgs = list(args = args)))
@@ -29,10 +28,10 @@ chuteInicial.MixNormal = function(Y, X, args){
 }
 .S3method("chuteInicial", "MixNormal", chuteInicial.MixNormal)
 
-chuteInicial.MoENormal = function(Y, X, args){
+chuteInicial.MoENormal = function(y, X, args){
 
   k = ncol(args$R)
-  dados = cbind(Y, X[, -1])
+  dados = cbind(y, X[, -1])
 
 
   grupos = switch(args$initGrupo,
@@ -40,13 +39,15 @@ chuteInicial.MoENormal = function(Y, X, args){
     "Aleatório" = sample(1:args$g, args$n, replace = T),
     NULL = kmeans(dados, centers = args$g)$cluster
   )
-
-  dadosGrupos = lapply(list("X" = X, "Y" = y),
+  print(dim(X))
+  print(length(y))
+  print(length(grupos))
+  dadosGrupos = lapply(list("X" = X, "y" = y),
                        function(x, grupos) lapply(split(x, grupos), matrix, ncol=dim(as.matrix(x))[2]),
                        grupos = grupos)
 
   params = do.call(rbind, mapply(estimaTeta.Normal,
-                                 dadosGrupos$Y,
+                                 dadosGrupos$y,
                                  dadosGrupos$X,
                                  SIMPLIFY = F,
                                  MoreArgs = list(args = args)))

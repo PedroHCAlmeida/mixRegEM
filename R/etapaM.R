@@ -1,13 +1,13 @@
-etapaM = function(Y, X, U, params, args, ...){
+etapaM = function(y, X, U, params, args, ...){
   UseMethod("etapaM")
 }
 
-etapaM.MixNormal = function(Y, X, U, params, args){
+etapaM.MixNormal = function(y, X, U, params, args){
 
   paramsNovo = do.call(
     rbind,
     lapply(1:args$g,
-           function(j) estimaTeta.MixNormal(Y = Y, X = X, Z = U$Z[,j])))
+           function(j) estimaTeta.MixNormal(y = y, X = X, Z = U$Z[,j])))
 
 
   P = colMeans(U$Z)
@@ -16,12 +16,12 @@ etapaM.MixNormal = function(Y, X, U, params, args){
 }
 .S3method("etapaM", "MixNormal", etapaM.MixNormal)
 
-etapaM.MoENormal = function(Y, X, U, params, args){
+etapaM.MoENormal = function(y, X, U, params, args){
 
   paramsNovo = do.call(
     rbind,
     sapply(1:args$g,
-           function(j) estimaTeta.MoENormal(Y = Y, X = X, Z = U$Z[,j], R = args$R,
+           function(j) estimaTeta.MoENormal(y = y, X = X, Z = U$Z[,j], R = args$R,
                                             alpha = params$params[j,startsWith(colnames(params$params), "alpha")],
                                             P = params$P[,j])))
 
@@ -31,12 +31,12 @@ etapaM.MoENormal = function(Y, X, U, params, args){
 }
 .S3method("etapaM", "MoENormal", etapaM.MoENormal)
 
-etapaM.MoEKernelNormal = function(Y, X, U, params, ...){
+etapaM.MoEKernelNormal = function(y, X, U, params, ...){
 
   paramsNovo = do.call(
     rbind,
     lapply(1:g,
-           function(j) estimaTeta.MixNormal(Y = Y, X = X, Z = U$Z[,j])))
+           function(j) estimaTeta.MixNormal(y = y, X = X, Z = U$Z[,j])))
 
   kjList = lapply(1:g,
                   function(j){
