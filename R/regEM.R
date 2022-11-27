@@ -73,9 +73,9 @@ regEM = function(y, x, g = 2, ..., tol = 1E-6, family = "MixNormal",
                                                        medias[gruposEM == j, j]))
 
     resultados = list(
-      `Iterações` = it,
+      Iteracoes = it,
       l = vero(y, X, paramsNovo),
-      `Parâmetros` = t(paramsNovo$params),
+      Parametros = t(paramsNovo$params),
       U = U,
       eps = eps,
       tabela = tabela,
