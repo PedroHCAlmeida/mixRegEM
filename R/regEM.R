@@ -18,7 +18,7 @@ regEM = function(y, x, g = 2, ..., tol = 1E-10, family = "MoENormal",
   args$n = length(y)
   args$g = g
 
-  X = cbind(rep(1, n), x)
+  X = cbind(rep(1, args$n), x)
   args$p = ncol(X)
   try({
     args$R = cbind(rep(1, args$n), args$r)
