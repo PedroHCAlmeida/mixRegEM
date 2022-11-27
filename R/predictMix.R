@@ -7,7 +7,7 @@ predictMix.MoENormal = function(reg, x, r, type){
 
   args = list()
   args$n = nrow(x)
-
+  args$g = reg$g
   X = cbind(rep(1, nrow(x)), x)
   R = cbind(rep(1, nrow(x)), r)
 

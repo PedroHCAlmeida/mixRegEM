@@ -74,6 +74,7 @@ regEM = function(y, x, g = 2, ..., tol = 1E-6, family = "MixNormal",
 
     resultados = list(
       Iteracoes = it,
+      g = g,
       l = vero(y, X, paramsNovo),
       Parametros = t(paramsNovo$params),
       U = U,
