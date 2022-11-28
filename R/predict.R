@@ -1,3 +1,4 @@
+#' @export
 predict.MoENormal = function(reg, x, r, type){
 
   args = list()
