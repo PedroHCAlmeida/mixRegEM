@@ -20,7 +20,7 @@ Collate:
     'estimaTeta.R'
     'etapaE.R'
     'etapaM.R'
-    'predict.R'
+    'predictMix.R'
     'regEM.R'
     'resultadosEM.R'
     'vero.R'
