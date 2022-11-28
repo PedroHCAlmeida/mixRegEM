@@ -1,4 +1,4 @@
-#' @export predictMix
+#' @export
 predictMix = function(reg, ...){
   UseMethod("predictMix")
 }
