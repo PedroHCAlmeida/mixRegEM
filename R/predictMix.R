@@ -19,7 +19,7 @@ predictMix.MoENormal = function(reg, x, r, type){
   if(type == 1) y = apply(P*medias, 1, sum)
   else{
     grupos = apply(P, 1, which.max)
-    y = sapply(1:n,
+    y = sapply(1:args$n,
                function(i) medias[i, grupos[i]])
   }
   return(y)
