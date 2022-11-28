@@ -1,9 +1,4 @@
-#' @export
-predictMix = function(reg, ...){
-  UseMethod("predictMix")
-}
-
-predictMix.MoENormal = function(reg, x, r, type){
+predict.MoENormal = function(reg, x, r, type){
 
   args = list()
   args$n = nrow(x)
@@ -23,4 +18,4 @@ predictMix.MoENormal = function(reg, x, r, type){
   }
   return(y)
 }
-.S3method("predictMix", "MoENormal", predictMix.MoENormal)
+.S3method("predict", "MoENormal", predict.MoENormal)
