@@ -85,7 +85,7 @@ regEM = function(y, x, g = 2, ..., tol = 1E-6, family = "MixNormal",
       params = paramsNovo,
       metricasTotais = colSums(do.call(rbind,
                                        lapply(metricas,
-                                              function(x) sapply(2:4, function(i) x$n*x[[i]]/n)))),
+                                              function(x) sapply(2:4, function(i) x$n*x[[i]]/args$n)))),
       residuos = lapply(1:g, function(j) medias[gruposEM == j, j] - y[gruposEM == j])
     )
   class(resultados) = c("resultadosEM", family)
