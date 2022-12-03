@@ -4,7 +4,7 @@ predictMix = function(reg, ...){
   UseMethod("predictMix")
 }
 
-predictMix.MoENormal = function(reg, x, r, type){
+predictMix.MoENormal = function(reg, ...){
 
   args = list()
   args$n = nrow(x)
