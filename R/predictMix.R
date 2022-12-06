@@ -1,10 +1,10 @@
 #' @param reg objeto de regressão de misturas
 #' @export
-predictMix = function(reg, ...){
+predictMix = function(reg){
   UseMethod("predictMix")
 }
 
-predictMix.MoENormal = function(reg, ...){
+predictMix.MoENormal = function(reg, x, r, type){
 
   args = list()
   args$n = nrow(x)
