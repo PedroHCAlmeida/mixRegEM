@@ -3,7 +3,7 @@
 predictMix = function(reg){
   UseMethod("predictMix")
 }
-
+#' @export
 predictMix.MoENormal = function(reg, x, r, type){
 
   args = list()
