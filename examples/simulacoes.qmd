@@ -4,23 +4,115 @@ format: html
 editor: visual
 ---
 
-## Quarto
-
-Quarto enables you to weave together content and executable code into a finished document. To learn more about Quarto see <https://quarto.org>.
-
-## Running Code
-
-When you click the **Render** button a document will be generated that includes both content and the output of embedded code. You can embed code like this:
-
 ```{r}
-1 + 1
+
+# install.packages("devtools")
+# install.packages("tidyverse")
+try(remove.packages("mixRegEM"))
+devtools::install_github("https://github.com/PedroHCAlmeida/mixRegEM")
 ```
 
-You can add options to executable code like this
-
 ```{r}
-#| echo: false
-2 * 2
+matrizP <- function(alpha, R){
+  P1 <- exp(R%*%alpha)/(1 + rowSums(exp(R%*%alpha)))
+  P <- cbind(P1, 1 - rowSums(P1))
+  return(P)
+}
+
+# Função auxiliar
+cbind.fill <- function(...){
+  nm <- list(...) 
+  nm <- lapply(nm, as.matrix)
+  n <- max(sapply(nm, nrow)) 
+  do.call(cbind, lapply(nm, function (x) 
+    rbind(x, matrix(, n-nrow(x), ncol(x))))) 
+}
 ```
 
-The `echo: false` option disables the printing of code (only output is displayed).
+# Grupos pobremente separados
+
+## Gerando grupo 1
+
+```{r}
+set.seed(123)
+n = 3000
+X = cbind(rep(1, n), rnorm(n, 5, 3), rnorm(n, 10, 5))
+x = X[,-1]
+
+R = cbind(rep(1, n), runif(n, -2, 1), runif(n, -1, 1))
+r = R[,-1]
+
+beta01 <- c(5, 6, -1)
+alpha01 <- c(0.7, 1, 2)
+sigma01 <- 100
+mu01 <- X%*%beta01
+
+alpha <- matrix(alpha01, byrow = T, nrow = 3)
+P <- matrizP(alpha, R)
+```
+
+## Gerando grupo 2
+
+```{r}
+beta02 <- c(-10, 1, 4)
+sigma02 <- 30
+mu02 <- X%*%beta02
+```
+
+## Gerando Y
+
+```{r}
+obs = do.call(rbind, 
+              lapply(1:n,
+                     function(i){
+                       mixsmsn::rmix(1, pii = P[i,], family = 'Normal', cluster = T,
+                                     arg = list(list(mu = mu01[i,], sigma2 = sigma01, shape = 0), 
+                                                list(mu = mu02[i,], sigma2 = sigma02, shape = 0)))
+                     }))
+
+rm(beta01, alpha01, sigma01, mu01, beta02, sigma02, mu02, alpha)
+y = unlist(obs[,1])
+grupo = unlist(obs[,2]) 
+```
+
+# Analisando Grupos
+
+```{r}
+data.frame(grupo = as.factor(grupo), y = y) |>
+  ggplot2::ggplot() +
+  ggplot2::aes(x = y, fill = grupo) +
+  ggplot2::geom_histogram(bins = 15, alpha=0.6, position = 'identity') +
+  ggplot2::theme_minimal()
+```
+
+## Regressão Usual
+
+```{r}
+ml = lm(y ~ ., data.frame(cbind(x, y = y)))
+summary(ml) 
+```
+
+## Modelo de misturas normal
+
+```{r}
+regMix = mixRegEM::regEM(y, x, r = r, g = 2, tol = 1E-6, grupoReal = grupo, verbose = F,
+                         family = "MoENormal", initGrupo = "KMeans", min_iter = 1)
+```
+
+
+## Modelo de misturas de experts normal
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
