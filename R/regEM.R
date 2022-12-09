@@ -1,4 +1,5 @@
 #' @include classes.R
+#' @include resultadosEM.R
 
 #' @param y variável respostas
 #' @param x variáveis explicativas

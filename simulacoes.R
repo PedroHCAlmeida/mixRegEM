@@ -75,7 +75,7 @@ ng = 2
 
 # Analisando Grupos
 
-data.frame(grupo = as.factor(grupo), y = y) %>%
+data.frame(grupo = as.factor(grupo), y = y) |>
   ggplot(aes(x = y, fill = grupo)) +
   geom_histogram(bins = 15, alpha=0.6, position = 'identity') +
   theme_minimal()
@@ -108,25 +108,25 @@ regMixN$Parametros
 
 # Análise resíduos
 
-dadosMetodos = data.frame(do.call(cbind.fill, regMoEN$residuos)) %>%
-  pivot_longer(everything()) %>% 
-  filter(!is.na(value)) %>%
-  mutate(Metodo = "MoE") %>%
+dadosMetodos = data.frame(do.call(cbind.fill, regMoEN$residuos)) |>
+  pivot_longer(everything()) |> 
+  filter(!is.na(value)) |>
+  mutate(Metodo = "MoE") |>
   bind_rows(
-    data.frame(do.call(cbind.fill, regMixN$residuos)) %>%
-      pivot_longer(everything()) %>% 
-      filter(!is.na(value)) %>%
-      mutate(Metodo = "Mix")) %>%
-  rename(Grupo = name) %>%
+    data.frame(do.call(cbind.fill, regMixN$residuos)) |>
+      pivot_longer(everything()) |> 
+      filter(!is.na(value)) |>
+      mutate(Metodo = "Mix")) |>
+  rename(Grupo = name) |>
   mutate(Grupo = str_replace(Grupo, "X", ""))
 
-dadosMetodos %>%
+dadosMetodos |>
   ggplot(aes(value, ..density.., fill = Grupo)) +
   facet_grid(vars(Grupo), vars(Metodo)) +
   geom_histogram() +
   theme_minimal()
 
-dadosMetodos %>%
+dadosMetodos |>
   ggplot(aes(Grupo, value, fill = Grupo)) +
   facet_wrap(~Metodo, nrow = 2) +
   geom_boxplot() +

@@ -21,6 +21,6 @@ Collate:
     'etapaE.R'
     'etapaM.R'
     'predictMix.R'
-    'regEM.R'
     'resultadosEM.R'
+    'regEM.R'
     'vero.R'
