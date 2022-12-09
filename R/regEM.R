@@ -35,7 +35,7 @@ regEM = function(y, x, g = 2, ..., tol = 1E-6, family = "MixNormal",
     while(((crit > tol) & (it < max_iter)) | (it < min_iter)){
       # Calculando Verossimilhança
       vero0 = vero(y, X, paramsAtual)
-      print(vero0)
+
       # Etapa E
       U = etapaE(y, X, paramsAtual, medias, args)
 
@@ -49,7 +49,10 @@ regEM = function(y, x, g = 2, ..., tol = 1E-6, family = "MixNormal",
 
       # Calculando critério
       crit = abs(vero(y, X, paramsAtual)/vero0 - 1)
-      if(verbose) print(crit)
+      if(verbose){
+        print(vero0)
+        print(crit)
+      }
       it = it+1
     }
 
