@@ -1,3 +1,4 @@
+#' @export
 print.resultadosEM = function(resultadosEM){
   print(resultadosEM$`Parâmetros`)
 }
