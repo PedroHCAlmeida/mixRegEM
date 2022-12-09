@@ -2,7 +2,7 @@ chuteInicial = function(y, X, args, ...){
   UseMethod("chuteInicial")
 }
 
-chuteInicial.MixNormal = function(y, X, args){
+chuteInicial.MixNormal = function(y, X, args, initGrupo = "KMeans"){
 
   dados = cbind(y, X[, -1])
 
@@ -28,13 +28,13 @@ chuteInicial.MixNormal = function(y, X, args){
 }
 .S3method("chuteInicial", "MixNormal", chuteInicial.MixNormal)
 
-chuteInicial.MoENormal = function(y, X, args){
+chuteInicial.MoENormal = function(y, X, args, initGrupo = "KMeans"){
 
   k = ncol(args$R)
   dados = cbind(y, X[, -1])
 
 
-  grupos = switch(args$initGrupo,
+  grupos = switch(initGrupo,
     "KMeans" = kmeans(dados, centers = args$g)$cluster,
     "Aleatório" = sample(1:args$g, args$n, replace = T),
     NULL = kmeans(dados, centers = args$g)$cluster
