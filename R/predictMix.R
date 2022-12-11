@@ -1,6 +1,6 @@
 #' @param reg objeto de regressão de misturas
 #' @export
-predictMix = function(reg, x, r = NULL, class = T){
+predictMix = function(reg, x = NULL, r = NULL, class = T){
   UseMethod("predictMix")
 }
 #' @export

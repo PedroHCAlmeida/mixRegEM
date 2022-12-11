@@ -8,9 +8,9 @@ editor: visual
 
 # install.packages("devtools")
 # install.packages("tidyverse")
-detach("package:mixRegEM")
-try(remove.packages("mixRegEM"))
-devtools::install_github("https://github.com/PedroHCAlmeida/mixRegEM")
+# detach("package:mixRegEM")
+# try(remove.packages("mixRegEM"))
+# devtools::install_github("https://github.com/PedroHCAlmeida/mixRegEM")
 ```
 
 ```{r}
@@ -140,14 +140,16 @@ regMix$Parametros |>
 set.seed(938)
 train_indexes = sample(1:n, n*0.7)
 
-reg_moe_train = mixRegEM::regEM(y[train_indexes], x[train_indexes,], r = r[train_indexes,], g = 2, 
+reg_moe_train = mixRegEM::regEM(y[train_indexes], 
+                                x[train_indexes,], 
+                                r = r[train_indexes,], g = 2, 
                                 tol = 1E-6, verbose = F,
-                                family = "MoENormal", initGrupo = "KMeans", min_iter = 1)
+                                family = "MoENormal", initGrupo = "KMeans")
 
-test_predict = mixRegEM::predictMix(reg_moe_train, 
-                                    x = x[!train_indexes,],
-                                    r = r[!train_indexes],
-                                    type = 1)
+test_predict_pond = mixRegEM::predictMix(reg = reg_moe_train, 
+                                         x = x[!train_indexes,],
+                                         r = r[!train_indexes,],
+                                         class = F)
 ```
 
 
