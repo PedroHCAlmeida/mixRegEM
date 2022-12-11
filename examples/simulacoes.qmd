@@ -8,6 +8,7 @@ editor: visual
 
 # install.packages("devtools")
 # install.packages("tidyverse")
+detach("package:mixRegEM")
 try(remove.packages("mixRegEM"))
 devtools::install_github("https://github.com/PedroHCAlmeida/mixRegEM")
 ```
@@ -70,7 +71,6 @@ obs = do.call(rbind,
                                                 list(mu = mu02[i,], sigma2 = sigma02, shape = 0)))
                      }))
 
-rm(beta01, alpha01, sigma01, mu01, beta02, sigma02, mu02, alpha)
 y = unlist(obs[,1])
 grupo = unlist(obs[,2]) 
 ```
@@ -95,13 +95,83 @@ summary(ml)
 ## Modelo de misturas normal
 
 ```{r}
-regMix = mixRegEM::regEM(y, x, r = r, g = 2, tol = 1E-6, grupoReal = grupo, verbose = F,
-                         family = "MoENormal", initGrupo = "KMeans", min_iter = 1)
-regMix
+regMix = mixRegEM::regEM(y, x, g = 2, tol = 1E-6, grupoReal = grupo, verbose = F,
+                         family = "MixNormal", initGrupo = "KMeans", min_iter = 1)
+
+regMix$Parametros |>
+  kableExtra::kable("html")
 ```
 
 
 ## Modelo de misturas de experts normal
+
+```{r}
+regMoe = mixRegEM::regEM(y, x, r = r, g = 2, tol = 1E-6, grupoReal = grupo, verbose = F,
+                         family = "MoENormal", initGrupo = "KMeans", min_iter = 1)
+
+regMoe$Parametros |>
+  kableExtra::kable("html")
+```
+
+## Comparação modelos
+
+```{r}
+regMix$Parametros |>
+  t() |>
+  as.data.frame() |>
+  tibble::rownames_to_column("Grupo") |>
+  tidyr::pivot_longer(-Grupo, names_to = "Coeficiente",
+                      values_to = "Mix") |>
+  dplyr::left_join(regMoe$Parametros |>
+                     t() |> 
+                     as.data.frame() |>
+                     tibble::rownames_to_column("Grupo") |>
+                     tidyr::pivot_longer(-Grupo, names_to = "Coeficiente",
+                                          values_to = "Moe") |>
+                     dplyr::filter(!grepl("alpha", Coeficiente)), by = c("Grupo", "Coeficiente")) |>
+  cbind("Simulação" = c(beta01, sqrt(sigma01), beta02, sqrt(sigma02))) |>
+  kableExtra::kable("html") 
+```
+
+
+## Predição
+
+```{r}
+set.seed(938)
+train_indexes = sample(1:n, n*0.7)
+
+reg_moe_train = mixRegEM::regEM(y[train_indexes], x[train_indexes,], r = r[train_indexes,], g = 2, 
+                                tol = 1E-6, verbose = F,
+                                family = "MoENormal", initGrupo = "KMeans", min_iter = 1)
+
+test_predict = mixRegEM::predictMix(reg_moe_train, 
+                                    x = x[!train_indexes,],
+                                    r = r[!train_indexes],
+                                    type = 1)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
