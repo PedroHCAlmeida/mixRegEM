@@ -1,3 +1,5 @@
+#' @include classes.R
+
 #' @param reg objeto de regressão de misturas
 #' @export
 predictMix = function(reg, x = NULL, r = NULL, class = T){
@@ -12,10 +14,12 @@ predictMix.MoENormal = function(reg, x, r, class = T){
   X = cbind(rep(1, nrow(x)), x)
   R = cbind(rep(1, nrow(x)), r)
 
-  alpha = reg$Parametros[startsWith(rownames(reg$Parametros), "alpha"),]
+  X = MoENormal(X)
 
-  P = matrizP(alpha[,-ncol(alpha)], R)
-  medias = estimaMedia.MoENormal(X, reg$params$params, args)
+  alpha = reg$params$params[,startsWith(colnames(reg$params$params), "alpha")]
+
+  P = matrizP(alpha[-nrow(alpha),], R)
+  medias = estimaMedia(X, reg$params$params, args)
   if(!class) y = apply(P*medias, 1, sum)
   else{
     grupos = apply(P, 1, which.max)
