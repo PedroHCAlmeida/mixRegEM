@@ -1,4 +1,6 @@
 #' @include classes.R
+#' @include estimaMedia.R
+#' @include auxFuncs.R
 
 #' @param reg objeto de regressão de misturas
 #' @export
