@@ -14,10 +14,10 @@ estimaSe.Normal = function(X, params, args, weights = 1, ...){
   t_0 = beta/se
   p_values = 2*pt(-abs(t_0), df = args$n-args$p)
 
-  return(list(se = se,
-              t_0 = t_0,
-              p_values = p_values
-  ))
+  return(data.frame(list(se = se,
+                         t_0 = t_0,
+                         p_values = p_values))
+  )
 }
 .S3method("estimaSe", "Normal", estimaSe.Normal)
 
