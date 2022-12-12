@@ -18,7 +18,7 @@ predictMix.MoENormal = function(reg, x, r, class = T){
 
   alpha = reg$params$params[,startsWith(colnames(reg$params$params), "alpha")]
 
-  P = matrizP(alpha[-nrow(alpha),], R)
+  P = matrizP(matrix(alpha[-nrow(alpha),], nrow=3, byrow = T), R)
   medias = estimaMedia(X, reg$params$params, args)
   if(!class) y = apply(P*medias, 1, sum)
   else{
