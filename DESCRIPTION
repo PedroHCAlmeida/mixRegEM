@@ -20,6 +20,7 @@ Collate:
     'estimaTeta.R'
     'etapaE.R'
     'etapaM.R'
+    'mixRegEM-package.R'
     'predictMix.R'
     'resultadosEM.R'
     'regEM.R'

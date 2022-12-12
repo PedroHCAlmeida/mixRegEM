@@ -8,9 +8,9 @@ editor: visual
 
 # install.packages("devtools")
 # install.packages("tidyverse")
-# detach("package:mixRegEM")
+detach("package:mixRegEM")
 # try(remove.packages("mixRegEM"))
-# devtools::install_github("https://github.com/PedroHCAlmeida/mixRegEM")
+devtools::install_github("PedroHCAlmeida/mixRegEM")
 ```
 
 ```{r}
@@ -150,6 +150,7 @@ test_predict_pond = mixRegEM::predictMix(reg = reg_moe_train,
                                          x = x[!train_indexes,],
                                          r = r[!train_indexes,],
                                          class = F)
+
 ```
 
 

@@ -1,6 +1,8 @@
 #' @include classes.R
 #' @include resultadosEM.R
 
+#' @name regEM
+#' @title regEM
 #' @param y variável respostas
 #' @param x variáveis explicativas
 #' @param g número de grupos
