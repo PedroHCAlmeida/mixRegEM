@@ -72,7 +72,7 @@ regEM = function(y, x, g = 2, ..., tol = 1E-6, family = "MixNormal",
     else tabela = NA
 
     rownames(paramsNovo$params) = 1:nrow(paramsNovo$params)
-    eps = estimaEp(X, paramsNovo, args = args, U = U)
+    se = estimaSe(X, paramsNovo, args = args, U = U)
     metricas = lapply(1:g, function(j) calculaMetricas(y[gruposEM == j],
                                                        medias[gruposEM == j, j]))
 
@@ -82,7 +82,7 @@ regEM = function(y, x, g = 2, ..., tol = 1E-6, family = "MixNormal",
       l = vero(y, X, paramsNovo),
       Parametros = t(paramsNovo$params),
       U = U,
-      eps = eps,
+      se = se,
       tabela = tabela,
       medias = medias,
       metricas = metricas,

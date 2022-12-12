@@ -17,6 +17,7 @@ Collate:
     'dMix.R'
     'estimaEp.R'
     'estimaMedia.R'
+    'estimaSe.R'
     'estimaTeta.R'
     'etapaE.R'
     'etapaM.R'
