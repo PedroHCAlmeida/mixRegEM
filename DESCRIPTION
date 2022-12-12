@@ -15,7 +15,6 @@ Collate:
     'chuteInicial.R'
     'classes.R'
     'dMix.R'
-    'estimaEp.R'
     'estimaMedia.R'
     'estimaSe.R'
     'estimaTeta.R'
