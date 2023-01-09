@@ -30,6 +30,14 @@ MoEKernelNormal = function(x){
   return(x)
 }
 
+setClass("MixT",
+         representation(Y = "Y"))
+
+MixT = function(x){
+  class(x) = c("MixT", class(x))
+  return(x)
+}
+
 setClass("resultadosEM",
          representation(resultados = "list"))
 

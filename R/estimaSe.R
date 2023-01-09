@@ -35,3 +35,10 @@ estimaSe.MoENormal = function(X, params, args, U){
   )
 }
 .S3method("estimaSe.MoENormal", "MoENormal", estimaSe.MoENormal)
+
+estimaSe.MixT = function(X, params, args, U){
+  lapply(1:args$g,
+         function(j) estimaSe.Normal(X, params$params[j,], args = args, weights = U$Z[,j]*U$K[,j])
+  )
+}
+.S3method("estimaSe.MixT", "MixT", estimaSe.MixT)

@@ -10,3 +10,8 @@ calculaMetricas = function(y, medias){
   mae = mean(abs(y-medias))
   return(list(n = length(y), MSE = mse, RMSE = rmse, MAE = mae))
 }
+
+dMahalanobis = function(y, mu, sigma){
+  ((y-mu)/sigma)**2
+}
+

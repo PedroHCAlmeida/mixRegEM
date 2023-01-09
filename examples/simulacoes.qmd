@@ -2,15 +2,17 @@
 title: "Simulações"
 format: html
 editor: visual
+execute: 
+  cache: true
 ---
 
 ```{r}
 
 # install.packages("devtools")
 # install.packages("tidyverse")
-detach("package:mixRegEM")
+# detach("package:mixRegEM")
 # try(remove.packages("mixRegEM"))
-devtools::install_github("PedroHCAlmeida/mixRegEM")
+# devtools::install_github("PedroHCAlmeida/mixRegEM")
 ```
 
 ```{r}
@@ -43,7 +45,7 @@ x = X[,-1]
 R = cbind(rep(1, n), runif(n, -2, 1), runif(n, -1, 1))
 r = R[,-1]
 
-beta01 <- c(5, 6, -1)
+beta01 <- c(11, 6, -1)
 alpha01 <- c(0.7, 1, 2)
 sigma01 <- 100
 mu01 <- X%*%beta01
@@ -55,7 +57,7 @@ P <- matrizP(alpha, R)
 ## Gerando grupo 2
 
 ```{r}
-beta02 <- c(-10, 1, 4)
+beta02 <- c(-10, 1, 7)
 sigma02 <- 30
 mu02 <- X%*%beta02
 ```
@@ -67,11 +69,12 @@ obs = do.call(rbind,
               lapply(1:n,
                      function(i){
                        mixsmsn::rmix(1, pii = P[i,], family = 'Normal', cluster = T,
-                                     arg = list(list(mu = mu01[i,], sigma2 = sigma01, shape = 0), 
-                                                list(mu = mu02[i,], sigma2 = sigma02, shape = 0)))
+                                     arg = list(c(mu01[i,], sqrt(sigma01), 0), 
+                                                c(mu02[i,], sqrt(sigma02), 0)))
                      }))
 
 y = unlist(obs[,1])
+
 grupo = unlist(obs[,2]) 
 ```
 
@@ -99,7 +102,9 @@ regMix = mixRegEM::regEM(y, x, g = 2, tol = 1E-6, grupoReal = grupo, verbose = F
                          family = "MixNormal", initGrupo = "KMeans", min_iter = 1)
 
 regMix$Parametros |>
-  kableExtra::kable("html")
+  kableExtra::kable("html") |>
+  kableExtra::kable_styling(font_size = 14) |>
+  kableExtra::scroll_box(width = "100%", height = "600px")
 ```
 
 
@@ -110,7 +115,9 @@ regMoe = mixRegEM::regEM(y, x, r = r, g = 2, tol = 1E-6, grupoReal = grupo, verb
                          family = "MoENormal", initGrupo = "KMeans", min_iter = 1)
 
 regMoe$Parametros |>
-  kableExtra::kable("html")
+  kableExtra::kable("html")|>
+  kableExtra::kable_styling(font_size = 14) |>
+  kableExtra::scroll_box(width = "100%", height = "600px")
 ```
 
 ## Comparação modelos
@@ -130,11 +137,15 @@ regMix$Parametros |>
                                           values_to = "Moe") |>
                      dplyr::filter(!grepl("alpha", Coeficiente)), by = c("Grupo", "Coeficiente")) |>
   cbind("Simulação" = c(beta01, sqrt(sigma01), beta02, sqrt(sigma02))) |>
-  kableExtra::kable("html") 
+  kableExtra::kable("html") |>
+  kableExtra::kable_styling(font_size = 14) |>
+  kableExtra::scroll_box(width = "100%", height = "600px")
 ```
 
 
 ## Predição
+
+### Ponderação
 
 ```{r}
 set.seed(938)
@@ -147,20 +158,156 @@ reg_moe_train = mixRegEM::regEM(y[train_indexes],
                                 family = "MoENormal", initGrupo = "KMeans")
 
 test_predict_pond = mixRegEM::predictMix(reg = reg_moe_train, 
-                                         x = x[!train_indexes,],
-                                         r = r[!train_indexes,],
+                                         x = x[!(1:n) %in%train_indexes,],
+                                         r = r[!(1:n) %in%train_indexes,],
                                          class = F)
+ # residuos
+(test_predict_pond - y[!(1:n) %in%train_indexes]) |>
+  hist()
+```
 
+```{r}
+(test_predict_pond - y[!(1:n) %in%train_indexes]) |>
+  summary()
 ```
 
 
+```{r}
+mean((test_predict_pond - y[!(1:n) %in%train_indexes])**2)
+```
+
+### Classificação
+
+```{r}
+test_predict_class = mixRegEM::predictMix(reg = reg_moe_train, 
+                                         x = x[!(1:n) %in%train_indexes,],
+                                         r = r[!(1:n) %in%train_indexes,],
+                                         class = T)
+ # residuos
+(test_predict_class - y[!(1:n) %in%train_indexes]) |>
+  hist()
+```
+
+```{r}
+(test_predict_class - y[!(1:n) %in%train_indexes]) |>
+  summary()
+```
+
+```{r}
+mean((test_predict_class - y[!(1:n) %in%train_indexes])**2)
+```
 
 
+### Modelo sem grupos
 
+```{r}
+ml_train = lm(y[train_indexes] ~ x[train_indexes,])
+y_ml = t(ml_train$coefficients %*% t(X[!(1:n) %in%train_indexes,]))
 
+(y_ml - y[!(1:n) %in% train_indexes]) |>
+  hist(xlim = c(-110, 110))
+```
 
+```{r}
+(y_ml - y[!(1:n) %in% train_indexes]) |> 
+  summary()
+```
 
+```{r}
+mean((y_ml - y[!(1:n) %in%train_indexes])**2)
+```
 
+```{r}
+set.seed(563)
+gera_moe_amostra = function(){
+  n = 3000
+  X = cbind(rep(1, n), rnorm(n, 5, 3), rnorm(n, 10, 5))
+  x = X[,-1]
+  
+  R = cbind(rep(1, n), runif(n, -2, 1), runif(n, -1, 1))
+  r = R[,-1]
+  
+  beta01 <- c(11, 6, -1)
+  alpha01 <- c(0.7, 1, 2)
+  sigma01 <- 100
+  mu01 <- X%*%beta01
+  
+  alpha <- matrix(alpha01, byrow = T, nrow = 3)
+  P <- matrizP(alpha, R)
+  
+  obs = do.call(rbind, 
+              lapply(1:n,
+                     function(i){
+                       mixsmsn::rmix(1, pii = P[i,], family = 'Normal', cluster = T,
+                                     arg = list(c(mu01[i,], sqrt(sigma01), 0), 
+                                                c(mu02[i,], sqrt(sigma02), 0)))
+                     }))
+
+  y = unlist(obs[,1])
+  
+  return(list(x = x, r = r, y = y))
+}
+```
+
+```{r}
+amostras = replicate(1000, gera_moe_amostra()) |>
+  t()
+
+amostras |>
+  head()
+```
+
+```{r}
+train_test_metrics = function(amostra){
+  
+  y = amostra$y
+  x = amostra$x
+  r = amostra$r
+  n = length(y)
+  
+  train_indexes = sample(1:n, n*0.7)
+
+  reg_moe_train = mixRegEM::regEM(y[train_indexes], 
+                                x[train_indexes,], 
+                                r = r[train_indexes,], g = 2, 
+                                tol = 1E-6, verbose = F,
+                                family = "MoENormal", initGrupo = "KMeans")
+
+  test_predict_pond = mixRegEM::predictMix(reg = reg_moe_train, 
+                                         x = x[!(1:n) %in%train_indexes,],
+                                         r = r[!(1:n) %in%train_indexes,],
+                                         class = F)
+  
+  test_predict_class = mixRegEM::predictMix(reg = reg_moe_train, 
+                                         x = x[!(1:n) %in%train_indexes,],
+                                         r = r[!(1:n) %in%train_indexes,],
+                                         class = T)
+  
+  ml_train = lm(y[train_indexes] ~ x[train_indexes,])
+  y_ml = t(ml_train$coefficients %*% t(X[!(1:n) %in%train_indexes,]))
+  
+  eqm_ml = mean((y_ml - y[!(1:n) %in%train_indexes])**2)
+  eqm_class = mean((test_predict_class - y[!(1:n) %in% train_indexes])**2)
+  eqm_pond = mean((test_predict_pond - y[!(1:n) %in%train_indexes])**2)
+  
+  return(cbind("pond" = eqm_pond, "class" = eqm_class, "ml" = eqm_ml))
+}
+```
+
+```{r}
+set.seed(0981)
+eqms = amostras |>
+  apply(1, train_test_metrics) |>
+  t()
+
+eqms |>
+  head()
+```
+
+```{r}
+eqms |>
+  apply(2, summary)
+```
 
 
 

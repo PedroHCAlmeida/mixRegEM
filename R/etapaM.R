@@ -53,3 +53,39 @@ etapaM.MoEKernelNormal = function(y, X, U, params, ...){
   return(list(params = paramsNovo, P = kj_std))
 }
 .S3method("etapaM", "MoEKernelNormal", etapaM.MoEKernelNormal)
+
+etapaM.MixT = function(y, X, U, params, args){
+
+  paramsNovo = do.call(
+    rbind,
+    lapply(1:args$g,
+           function(j) estimaTeta.MixT(y = y, X = X,
+                                       Z = U$Z[,j], K = U$K[,j])))
+
+
+  Q = function(nu){
+    sum(log(dMix.MixT(y, X, paramsNovo[, startsWith(colnames(paramsNovo), "beta")],
+              paramsNovo[,"sigma"], nu = nu, params$P)))
+  }
+
+  nu = optim(params$params[,"nu"],
+             fn = Q,
+             method = "L-BFGS-B",
+             lower = 0.001,
+             upper = 30,
+             control = list(fnscale = -1)
+             )$par
+
+  P = colMeans(U$Z)
+
+  paramsNovo = as.matrix(cbind(paramsNovo, "nu" = as.numeric(nu)))
+
+  return(list(params = paramsNovo, P = P))
+}
+.S3method("etapaM", "MixT", etapaM.MixT)
+
+
+
+
+
+

@@ -6,10 +6,10 @@ chuteInicial.MixNormal = function(y, X, args, initGrupo = "KMeans"){
 
   dados = cbind(y, X[, -1])
 
+  if(is.null(args$initGrupo)) args$initGrupo = "KMeans"
   grupos = switch(args$initGrupo,
                   "KMeans" = kmeans(dados, centers = args$g)$cluster,
-                  "Aleatório" = sample(1:args$g, args$n, replace = T),
-                  NULL = kmeans(dados, centers = args$g)$cluster
+                  "Aleatório" = sample(1:args$g, args$n, replace = T)
   )
 
   dadosGrupos = lapply(list("X" = X, "y" = y),
@@ -34,10 +34,10 @@ chuteInicial.MoENormal = function(y, X, args, initGrupo = "KMeans"){
   dados = cbind(y, X[, -1])
 
 
-  grupos = switch(initGrupo,
-    "KMeans" = kmeans(dados, centers = args$g)$cluster,
-    "Aleatório" = sample(1:args$g, args$n, replace = T),
-    NULL = kmeans(dados, centers = args$g)$cluster
+  if(is.null(args$initGrupo)) args$initGrupo = "KMeans"
+  grupos = switch(args$initGrupo,
+                  "KMeans" = kmeans(dados, centers = args$g)$cluster,
+                  "Aleatório" = sample(1:args$g, args$n, replace = T)
   )
 
   dadosGrupos = lapply(list("X" = X, "y" = y),
@@ -59,4 +59,35 @@ chuteInicial.MoENormal = function(y, X, args, initGrupo = "KMeans"){
   return(list(params = params, P = P))
 }
 .S3method("chuteInicial", "MoENormal", chuteInicial.MoENormal)
+
+chuteInicial.MixT = function(y, X, args, initGrupo = "KMeans"){
+
+  dados = cbind(y, X[, -1])
+
+  if(is.null(args$initGrupo)) args$initGrupo = "KMeans"
+  grupos = switch(args$initGrupo,
+                  "KMeans" = kmeans(dados, centers = args$g)$cluster,
+                  "Aleatório" = sample(1:args$g, args$n, replace = T)
+  )
+
+  dadosGrupos = lapply(list("X" = X, "y" = y),
+                       function(x, grupos) lapply(split(x, grupos),
+                                                  matrix, ncol=dim(as.matrix(x))[2]),
+                       grupos = grupos)
+
+  params = do.call(rbind, mapply(estimaTeta.Normal,
+                                 dadosGrupos$y,
+                                 dadosGrupos$X,
+                                 SIMPLIFY = F,
+                                 MoreArgs = list(args = args)))
+
+  params = as.matrix(cbind(params, "nu" = rep(5, args$g)))
+
+  P = prop.table(table(grupos))
+
+  return(list(params = params, P = P))
+}
+.S3method("chuteInicial", "MixT", chuteInicial.MixT)
+
+
 

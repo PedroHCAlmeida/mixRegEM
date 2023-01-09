@@ -15,3 +15,10 @@ vero.MoENormal = function(Y, X, params){
                params$params[,"sigma"], params$P)))
 }
 .S3method("vero", "MoENormal", vero.MoENormal)
+
+vero.MixT = function(Y, X, params){
+  sum(log(dMix(Y, X,
+               params$params[, startsWith(colnames(params$params), "beta")],
+               params$params[,"sigma"], params$P, params$params[,"nu"])))
+}
+.S3method("vero", "MixT", vero.MixT)

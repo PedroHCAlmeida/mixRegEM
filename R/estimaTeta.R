@@ -32,3 +32,12 @@ estimaTeta.MoENormal = function(y, X, Z, R, alpha, P){
 }
 .S3method("estimaTeta", "MoENormal", estimaTeta.MoENormal)
 
+estimaTeta.MixT = function(y, X, Z, K){
+
+  beta = solve(t(X)%*%diag(Z*K)%*%X)%*%(t(X)%*%(Z*K*y))
+  sigma = sqrt(sum(Z*K*((y - (X%*%beta))^2))/sum(Z))
+
+  c(beta = beta, sigma = sigma)
+}
+.S3method("estimaTeta", "MixT", estimaTeta.MixT)
+
