@@ -15,7 +15,7 @@
 #' @return resultados finais
 #' @export
 regEM = function(y, x, g = 2, ..., tol = 1E-6, family = "MixNormal",
-                 grupoReal = NULL, max_iter = 1000, min_iter = 5, verbose = T){
+                 grupoReal = NULL, max_iter = 1000, min_iter = 5, verbose = T, showSE = F){
 
   args = list(...)
   args$n = length(y)
@@ -23,9 +23,13 @@ regEM = function(y, x, g = 2, ..., tol = 1E-6, family = "MixNormal",
 
   X = cbind(rep(1, args$n), x)
   args$p = ncol(X)
+
   try({
     args$R = cbind(rep(1, args$n), args$r)
+    args$k = ncol(args$R)
   })
+
+  try({args$m = sum(args$phi == 1)})
 
   y = eval(parse(text = family))(y)
   X = eval(parse(text = family))(X)
@@ -34,11 +38,10 @@ regEM = function(y, x, g = 2, ..., tol = 1E-6, family = "MixNormal",
   medias = estimaMedia(X, paramsAtual$params, args)
   crit = 1
   it = 0
+  vero0_ant = 0
+  vero0 = vero(y, medias, paramsAtual, args)
 
   while(((crit > tol) & (it < max_iter)) | (it < min_iter)){
-    # Calculando Verossimilhança
-    vero0 = vero(y, X, paramsAtual)
-
     # Etapa E
     U = etapaE(y, X, paramsAtual, medias, args)
 
@@ -46,55 +49,54 @@ regEM = function(y, x, g = 2, ..., tol = 1E-6, family = "MixNormal",
     paramsNovo = etapaM(y, X, U, paramsAtual, args)
 
     # Estimando valores esperados
-    medias = estimaMedia(X, paramsAtual$params, args)
+    medias = estimaMedia(X, paramsNovo$params, args)
 
     paramsAtual = paramsNovo
 
     # Calculando critério
-    crit = abs(vero(y, X, paramsAtual)/vero0 - 1)
+    veroAtual = vero(y, medias, paramsAtual, args)
+
+
+    crit = abs((veroAtual-vero0)/(vero0))
+
+    vero0_ant = vero0
+    vero0 = veroAtual
+
     if(verbose){
-      print(vero0)
-      print(paramsNovo)
-      print(crit)
+      print(paramsNovo$params)
+      cat('Loglikelihood =', veroAtual, '\n')
     }
     it = it+1
   }
 
+  nPar = ncol(paramsAtual$params[,!colnames(paramsAtual$params) %in% c("delta", "gama")])
+  aic = -2*veroAtual + 2*nPar
+  bic = -2*veroAtual + log(args$n)*nPar
+
   gruposEM = apply(U$Z, 1, which.max)
-
-  if(!is.null(grupoReal)){
-
-    ordemReg = order(table(gruposEM))
-    ordemReal = order(table(grupoReal))
-    tabela = table(grupoReal, replace(gruposEM, ordemReg, ordemReal),
-                   dnn = list('Real', 'Modelo'))
-
-    #tabela = table(grupoReal, gruposEM, dnn = list('Real', 'Modelo'))
-    }
-  else tabela = NA
+  r = rank(-table(gruposEM))
+  grupos_ordem = numeric(args$n)
+  for(i in 1:length(r)){
+    grupos_ordem[gruposEM == names(r[i])] = r[i]
+  }
+  gruposEM = grupos_ordem
 
   rownames(paramsNovo$params) = 1:nrow(paramsNovo$params)
-  se = estimaSe(X, paramsNovo, args = args, U = U)
-  metricas = lapply(1:g, function(j) calculaMetricas(y[gruposEM == j],
-                                                     medias[gruposEM == j, j]))
+  if(showSE) se = estimaSe(y, X, paramsNovo, args = args, U = U) else se = NULL
 
   resultados = list(
     Iteracoes = it,
     g = g,
-    l = vero(y, X, paramsNovo),
+    l = veroAtual,
+    AIC = aic,
+    BIC = bic,
     Parametros = t(paramsNovo$params),
     U = U,
     se = se,
-    tabela = tabela,
-    medias = medias,
-    metricas = metricas,
-    params = paramsNovo,
-    metricasTotais = colSums(do.call(rbind,
-                                     lapply(metricas,
-                                            function(x) sapply(2:4, function(i) x$n*x[[i]]/args$n)))),
-    residuos = lapply(1:g, function(j) medias[gruposEM == j, j] - y[gruposEM == j])
+    P = paramsNovo$P
   )
   class(resultados) = c("resultadosEM", family)
   return(resultados)
 }
+
 

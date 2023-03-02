@@ -20,5 +20,21 @@ estimaMedia.MoENormal = function(X, params, args){
 
 estimaMedia.MixT = function(X, params, args){
   sapply(1:args$g,
-         function(j) estimaMedia.Normal(X, params[j,], args))}
+         function(j) estimaMedia.Normal(X, params[j,], args))
+}
 .S3method("estimaMedia", "MixT", estimaMedia.MixT)
+
+estimaMedia.MoET = function(X, params, args){
+  sapply(1:args$g,
+         function(j) estimaMedia.Normal(X, params[j,], args = args))
+}
+.S3method("estimaMedia", "MoET", estimaMedia.MoET)
+
+estimaMedia.MixSN = function(X, params, args){
+  sapply(1:args$g,
+         function(j) estimaMedia.Normal(X, params[j,], args = args))
+}
+.S3method("estimaMedia", "MixSN", estimaMedia.MixSN)
+
+
+

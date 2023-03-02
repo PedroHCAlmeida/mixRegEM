@@ -38,23 +38,216 @@ etapaE.MixT = function(y, X, params, medias, args, ...){
 }
 .S3method("etapaE", "MixT", etapaE.MixT)
 
-# microbenchmark(
-#   "for" = {
-#     Z = matrix(rep(0, args$n*args$g), ncol = args$g)
-#     U = matrix(rep(0, args$n*args$g), ncol = args$g)
-#     for(j in 1:args$g){
-#       Z[, j] = params$P[j]*dt((y - medias[,j])/params$params[j,"sigma"], df = params$params[j,"nu"])
-#       U[, j] = params$params[j, "nu"]+1/(params$params[j, "nu"]+dMahalanobis(y, medias[,j], params$params[j, "sigma"]))
-#     }
-#   },
-#   "apply" = {
-#     Z = sapply(1:args$g,
-#                function(j) params$P[j]*dt((y - medias[,j])/params$params[j,"sigma"], df = params$params[j,"nu"]))
-#     U = sapply(1:args$g,
-#                function(j) params$params[j, "nu"]+1/(params$params[j, "nu"]+dMahalanobis(y, medias[,j], params$params[j, "sigma"])))
-#   },
-#    times = 100
-#   )
+etapaE.MoET = function(y, X, params, medias, args, ...){
+
+  Z = sapply(1:args$g,
+             function(j) params$P[,j]*sn::dst(y, X%*%params$params[j, startsWith(colnames(params$params), "beta")],
+                                              params$params[j,"sigma"], nu = params$params[j,"nu"]))
+
+  Z = t(sapply(1:args$n, function(i) Z[i,]/sum(Z[i,])))
+
+  K = sapply(1:args$g,
+             function(j) (params$params[j, "nu"]+1)/(params$params[j, "nu"]+dMahalanobis(y, medias[,j], params$params[j, "sigma"])))
+
+  return(list(Z = Z, K = K))
+}
+.S3method("etapaE", "MoET", etapaE.MoET)
+
+etapaE.MixSN = function(y, X, params, medias, args, ...){
+
+  b = -sqrt(2/pi)
+
+  U_list = sapply(1:args$g,
+             function(j){
+               Z = params$P[j]*sn::dsn(y, medias[,j], params$params[j,"sigma"], params$params[j,"lambda"])
+               Mu = (params$params[j,"delta"]/(params$params[j,"delta"]**2+params$params[j,"gama"]))*(y-medias[,j]-b*params$params[j,"delta"])
+               M2T = params$params[j,"gama"]/(params$params[j,"delta"]**2+params$params[j,"gama"])
+               MT = sqrt(M2T)
+               p = pnorm(Mu/MT)
+               p = ifelse(p == 0, .Machine$double.xmin, p)
+               tau = (dnorm(Mu/MT))/p
+               t1 = (Mu + b + MT*tau)
+               t2 = ((Mu + b)^2 + M2T + (Mu + 2*b)*MT*tau)
+               return(list(Z, t1, t2))
+               })
+
+  U = lapply(1:3, function(i) do.call(cbind, U_list[i,])) |>
+    setNames(c("Z", "t1", "t2"))
+
+  U$Z = t(sapply(1:args$n, function(i) U$Z[i,]/sum(U$Z[i,])))
+  U$t1 = U$Z*U$t1
+  U$t2 = U$Z*U$t2
+
+  return(U)
+}
+.S3method("etapaE", "MixSN", etapaE.MixSN)
+
+# etapaECenSN = function(y, X, params, medias, args, M2T){
+#   Z = params$P[, j]*(sn::psn(rep(args$c2, args$m), medias[, j], params$params[j,"sigma"], params$params[j,"lambda"])-sn::psn(rep(args$c1, args$m), medias[,j], params$params[j,"sigma"], params$params[j,"lambda"]))
+#
+# }
+
+etapaE.MoECenSN = function(y, X, params, medias, args, ...){
+
+  b   = -sqrt(2/pi)
+
+  phi1 = (args$phi == 1)
+
+  U_list = sapply(
+    1:args$g,
+    function(j){
+      Z = e01 = e02 = w0 = tau_gama = e10 = e11 = e20 = numeric(args$n)
+      R0 = sn::psn(rep(args$c2, args$m), medias[phi1, j], params$params[j,"sigma"], params$params[j,"lambda"])-sn::psn(rep(args$c1, args$m), medias[phi1,j], params$params[j,"sigma"], params$params[j,"lambda"])
+      R0 = ifelse(R0 == 0, .Machine$double.xmin, R0)
+
+      Z[!phi1] = params$P[!phi1, j]*sn::dsn(y[!phi1], medias[!phi1, j], params$params[j,"sigma"], params$params[j,"lambda"])
+      Z[phi1] = params$P[phi1, j]*R0
+
+      Mu = (params$params[j,"delta"]/(params$params[j,"delta"]**2+params$params[j,"gama"]))*(y-medias[,j])
+      M2T = params$params[j,"gama"]/(params$params[j,"delta"]**2+params$params[j,"gama"])
+      MT = sqrt(M2T)
+      moments = sapply(
+            which(phi1),
+            function(i) MomTrunc::meanvarTMD(lower = -Inf, upper = y[i], mu = medias[i, j],
+                                         Sigma = params$params[j,"sigma"]^2,
+                                         lambda = params$params[j,"lambda"], dist = 'SN')[c(1,2)]
+          )
+      e01[!phi1] = y[!phi1]
+      e01[phi1] = unlist(moments[1,])
+      e02[!phi1] = y[!phi1]**2
+      e02[phi1] = unlist(moments[2,])
+      w0[phi1] = sapply(
+            which(phi1),
+            function(i) meanvarTMD(lower = -Inf, upper = y[i], mu = medias[i, j],  Sigma = params$params[j,"gama"], dist = 'normal')$mean
+            )
+      aij = params$params[j,"lambda"]*(y[!phi1] - medias[!phi1,j])/params$params[j,"sigma"]
+      p = pnorm(aij)
+      p = ifelse(p == 0, .Machine$double.xmin, p)
+      tau_gama[!phi1] = (dnorm(aij))/p
+      P0 = pnorm(y[phi1], medias[phi1,j], sqrt(params$params[j,"gama"]))
+      tau_gama[phi1] = P0/(sqrt(pi*(1 + params$params[j,"lambda"]^2)/2)*R0)
+      e10[!phi1] = (Mu[!phi1] + MT*tau_gama[!phi1])
+      e10[phi1] = ((M2T*params$params[j,"delta"]/params$params[j,"gama"])*(e01[phi1] - medias[phi1,j]))+MT*tau_gama[phi1]
+      e20[!phi1] = Mu[!phi1]**2 + M2T + Mu[!phi1]*MT*tau_gama[!phi1]
+      e20[phi1] = (M2T*params$params[j,"delta"]/params$params[j,"gama"])**2*(e02[phi1] - 2*medias[phi1,j]*e01[phi1] + medias[phi1,j]**2) +
+            (MT**3*params$params[j,"delta"]/params$params[j,"gama"]*(w0[phi1]-medias[phi1,j])*tau_gama[phi1]) + M2T
+      e11[!phi1] = e01[!phi1]*(Mu[!phi1] + MT*tau_gama[!phi1])
+      e11[phi1] = (M2T*params$params[j,"delta"]/params$params[j,"gama"])*(e02[phi1] - medias[phi1,j]*e01[phi1]) +
+                  (MT*w0[phi1]*tau_gama[phi1])
+      return(list(Z, e01, e02, e10, e20, e11))
+      })
+  U = lapply(1:6, function(i) do.call(cbind, U_list[i,])) |>
+    setNames(c("Z", "e01", "e02", "e10", "e20", "e11"))
+
+  soma_z = apply(U$Z, 1, sum)
+  U$Z = sapply(1:args$g, function(j) U$Z[,j]/soma_z)
+  return(U)
+}
+.S3method("etapaE", "MoECenSN", etapaE.MoECenSN)
+
+etapaE.MoECenST = function(y, X, params, medias, args, ...){
+
+  b = -sqrt(2/pi)
+
+  phi1 = (args$phi == 1)
+
+  U_list = sapply(
+    1:args$g,
+    function(j){
+
+      Z = e00 = e01 = e02 = w0 = tau_gama = e10 = e11 = e20 = numeric(args$n)
+
+      F0 = sn::pst(rep(args$c2, args$m), medias[phi1, j], params$params[j,"sigma"], params$params[j,"lambda"], nu = params$params[j,"nu"])-
+        sn::pst(rep(args$c1, args$m), medias[phi1,j], params$params[j,"sigma"], params$params[j,"lambda"], nu = params$params[j,"nu"])
+
+      d2ij = dMahalanobis(y, medias[, j], params$params[j,"sigma"])
+
+      Z[!phi1] = params$P[!phi1, j]*sn::dst(y[!phi1], medias[!phi1, j], params$params[j,"sigma"], params$params[j,"lambda"], nu = params$params[j,"nu"])
+      Z[phi1] = params$P[phi1, j]*F0
+
+      MuAux = (params$params[j,"delta"]/(params$params[j,"delta"]**2+params$params[j,"gama"]))
+      Mu = MuAux*(y-medias[,j])
+      M2T = params$params[j,"gama"]/(params$params[j,"delta"]**2+params$params[j,"gama"])
+      MT = sqrt(M2T)
+
+      aij = params$params[j,"lambda"]*(y[!phi1] - medias[!phi1,j])/params$params[j,"sigma"]
+
+      e00Aux = 4*(params$params[j,"nu"]**(params$params[j,"nu"]/2))*gamma((params$params[j,"nu"]+3)/2)*
+            ((params$params[j,"nu"]+d2ij[!phi1])**(-(params$params[j,"nu"]+3)/2))/
+            (sqrt(pi)*params$params[j,"sigma"]*gamma(params$params[j,"nu"]/2))*
+            pt(aij*sqrt((params$params[j,"nu"] + 3)/(params$params[j,"nu"] + d2ij[!phi1])), params$params[j,"nu"] + 3)
+
+      pU = sn::dst(y[!phi1], medias[!phi1,j], params$params[j,"sigma"], params$params[j,"lambda"], params$params[j,"nu"])
+
+      sigma_ =  params$params[j,"sigma"]*sqrt(params$params[j,"nu"]/(params$params[j,"nu"]+2))
+      P0 = sn::pst(rep(args$c2, args$m), medias[phi1, j], sigma_, params$params[j,"lambda"], nu = params$params[j,"nu"]+2)-
+        sn::pst(rep(args$c1, args$m), medias[phi1,j], sigma_, params$params[j,"lambda"], nu = params$params[j,"nu"]+2)
+
+      sigma__ = params$params[j,"sigma"]*sqrt(params$params[j,"nu"]/((params$params[j,"nu"]+1)*(1+params$params[j,"lambda"]**2)))
+
+      R0 = sn::pst(rep(args$c2, args$m), medias[phi1, j], sigma__,  0, params$params[j,"nu"]+1)-
+        sn::pst(rep(args$c1, args$m), medias[phi1,j], sigma__, 0, params$params[j,"nu"]+1)
+
+      R0_F0 = R0/ifelse(F0 == 0, .Machine$double.xmin, F0)
+
+      e00[!phi1] = e00Aux/ifelse(pU == 0, .Machine$double.xmin, pU)
+      e00[phi1] = P0/ifelse(F0 == 0, .Machine$double.xmin, F0)
+
+      moments = sapply(
+            which(phi1),
+            function(i)
+              MomTrunc::MCmeanvarTMD(
+                lower = args$c1,
+                upper = args$c2,
+                mu = medias[i, j],
+                Sigma = as.matrix(params$params[j,"sigma"]^2),
+                lambda = as.matrix(params$params[j,"lambda"]),
+                nu = as.matrix(params$params[j,"nu"]+2),
+                dist = 'ST')[c(1,2)]
+          )
+
+
+      e01[!phi1] = e00[!phi1]*y[!phi1]
+      e01[phi1] = e00[phi1]*unlist(moments[1,])
+
+      e02[!phi1] = e00[!phi1]*(y[!phi1]**2)
+      e02[phi1] = e00[phi1]*unlist(moments[2,])
+
+      w0[phi1] = sapply(
+            which(phi1),
+            function(i) MomTrunc::MCmeanvarTMD(lower = args$c1, upper = args$c2, mu = medias[i, j],
+                                               Sigma = as.matrix(sigma__**2), nu = as.matrix(params$params[j,"nu"]+1), dist = 't')$mean
+          )
+
+      aij = params$params[j,"lambda"]*(y[!phi1] - medias[!phi1,j])/params$params[j,"sigma"]
+
+      auxU = (2*MT*params$params[j,"nu"]**(params$params[j,"nu"]/2)*gamma((params$params[j,"nu"]+2)/2)*
+                   (params$params[j,"nu"]+d2ij[!phi1]+(aij**2))**(-(params$params[j,"nu"]+2)/2))/
+            (pi*params$params[j,"sigma"]*gamma(params$params[j,"nu"]/2)*pU)
+
+      cv = 2*gamma((params$params[j,"nu"]+1)/2)/(gamma((params$params[j,"nu"])/2)*sqrt(params$params[j,"nu"]*(1+(params$params[j,"lambda"]**2))*pi))
+
+      e10[!phi1] = (Mu[!phi1]*e00[!phi1]) + auxU
+      e10[phi1] = MuAux*(e01[phi1]-e00[phi1]*medias[phi1, j])+MT*cv*(R0_F0)
+
+      e20[!phi1] = ((Mu[!phi1]**2)*e00[!phi1]) + M2T + Mu[!phi1]*auxU
+      e20[phi1] = (MuAux**2)*(e02[phi1] - 2*e01[phi1]*medias[phi1, j]+ e00[phi1]*(medias[phi1, j]**2)) + MuAux*(w0[phi1]-medias[phi1,j])*MT*cv*(R0_F0)+M2T
+
+      e11[!phi1] = e10[!phi1]*y[!phi1]
+      e11[phi1] = MuAux*(e02[phi1]-e01[phi1]*medias[phi1,j])+
+        MT*cv*(R0_F0)*w0[phi1]
+
+      return(list(Z, e00, e01, e02, e10, e20, e11))
+      })
+
+  U = lapply(1:7, function(i) do.call(cbind, U_list[i,])) |>
+    setNames(c("Z", "e00", "e01", "e02", "e10", "e20", "e11"))
+  soma_z = apply(U$Z, 1, sum)
+  U$Z = sapply(1:args$g, function(j) U$Z[,j]/soma_z)
+  return(U)
+}
+.S3method("etapaE", "MoECenST", etapaE.MoECenST)
+
 
 
 

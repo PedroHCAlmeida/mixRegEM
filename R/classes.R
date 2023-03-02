@@ -38,6 +38,38 @@ MixT = function(x){
   return(x)
 }
 
+setClass("MoET",
+         representation(Y = "Y"))
+
+MoET = function(x){
+  class(x) = c("MoET", "MixT", class(x))
+  return(x)
+}
+
+setClass("MixSN",
+         representation(Y = "Y"))
+
+MixSN = function(x){
+  class(x) = c("MixSN", "MixNormal", class(x))
+  return(x)
+}
+
+setClass("MoECenSN",
+         representation(Y = "Y"))
+
+MoECenSN = function(x){
+  class(x) = c("MoECenSN", "MixSN", "MixNormal", class(x))
+  return(x)
+}
+
+setClass("MoECenST",
+         representation(Y = "Y"))
+
+MoECenST = function(x){
+  class(x) = c("MoECenST", "MixSN", "MixNormal", class(x))
+  return(x)
+}
+
 setClass("resultadosEM",
          representation(resultados = "list"))
 

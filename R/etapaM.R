@@ -84,8 +84,148 @@ etapaM.MixT = function(y, X, U, params, args){
 }
 .S3method("etapaM", "MixT", etapaM.MixT)
 
+etapaM.MoET = function(y, X, U, params, args){
+
+  paramsNovo = do.call(
+    rbind,
+    lapply(1:args$g,
+           function(j) estimaTeta.MoET(
+             y = y,
+             X = X,
+             Z = U$Z[,j],
+             K = U$K[,j],
+             R = args$R,
+             alpha = params$params[j,startsWith(colnames(params$params), "alpha")],
+             P = params$P[,j]
+             )
+           )
+    )
 
 
+  Q = function(nu){
+    sum(log(dMix.MixT(y, X, paramsNovo[, startsWith(colnames(paramsNovo), "beta")],
+                      paramsNovo[,"sigma"], nu = nu, params$P)))
+  }
 
+  nu = optim(params$params[,"nu"],
+             fn = Q,
+             method = "L-BFGS-B",
+             lower = 0.001,
+             upper = 30,
+             control = list(fnscale = -1)
+  )$par
+
+  P = matrizP(t(paramsNovo)[startsWith(colnames(paramsNovo), "alpha"), 1:(args$g-1)], args$R)
+
+  paramsNovo = as.matrix(cbind(paramsNovo, "nu" = as.numeric(nu)))
+
+  return(list(params = paramsNovo, P = P))
+}
+.S3method("etapaM", "MoET", etapaM.MoET)
+
+etapaM.MixSN = function(y, X, U, params, args){
+
+  medias = estimaMedia.MixSN(X, params$params, args)
+
+  paramsNovo = do.call(
+    rbind,
+    lapply(1:args$g,
+           function(j) estimaTeta.MixSN(
+             y = y,
+             X = X,
+             medias = medias[,j],
+             Z = U$Z[,j],
+             t1 = U$t1[,j],
+             t2 = U$t2[,j],
+             delta = params$params[j,"delta"]
+             )
+           )
+    )
+
+
+  P = colMeans(U$Z)
+
+  return(list(params = paramsNovo, P = P))
+}
+.S3method("etapaM", "MixSN", etapaM.MixSN)
+
+etapaM.MoECenSN = function(y, X, U, params, args){
+
+  paramsNovo = do.call(
+    rbind,
+    lapply(1:args$g,
+           function(j) estimaTeta.MoECenSN(
+             y = y,
+             X = X,
+             R = args$R,
+             Z = U$Z[,j],
+             e01 = U$Z[,j]*U$e01[,j],
+             e02 = U$Z[,j]*U$e02[,j],
+             e10 = U$Z[,j]*U$e10[,j],
+             e20 = U$Z[,j]*U$e20[,j],
+             e11 = U$Z[,j]*U$e11[,j],
+             delta = params$params[j,startsWith(colnames(params$params), "delta")],
+             P = params$P[,j],
+             alpha = params$params[j,startsWith(colnames(params$params), "alpha")]
+           )
+    )
+  )
+
+  P = matrizP(t(paramsNovo)[startsWith(colnames(paramsNovo), "alpha"), 1:(args$g-1)], args$R)
+
+  return(list(params = paramsNovo, P = P))
+}
+.S3method("etapaM", "MoECenSN", etapaM.MoECenSN)
+
+etapaM.MoECenST = function(y, X, U, params, args){
+
+  paramsNovo = do.call(
+    rbind,
+    lapply(1:args$g,
+           function(j) estimaTeta.MoECenST(
+             y = y,
+             X = X,
+             R = args$R,
+             Z = U$Z[,j],
+             e00 = U$e00[,j],
+             e01 = U$e01[,j],
+             e02 = U$e02[,j],
+             e10 = U$e10[,j],
+             e20 = U$e20[,j],
+             e11 = U$e11[,j],
+             delta = params$params[j,startsWith(colnames(params$params), "delta")],
+             P = params$P[,j],
+             alpha = params$params[j,startsWith(colnames(params$params), "alpha")]
+           )
+    )
+  )
+
+  medias = X %*% t(paramsNovo[, startsWith(colnames(paramsNovo), "beta")])
+  Q = function(NU){
+    sum(log(dMix.MoECenST(
+      y = y,
+      medias = medias,
+      sigma = paramsNovo[,"sigma"],
+      lambda = paramsNovo[,"lambda"],
+      nu = NU,
+      P = params$P,
+      args = args
+      )))
+  }
+
+  nu = optim(params$params[,"nu"],
+             fn = Q,
+             method = "L-BFGS-B",
+             lower = 1,
+             upper = 15,
+             control = list(fnscale = -1)
+  )$par
+
+  paramsNovo = as.matrix(cbind(paramsNovo, "nu" = as.numeric(nu)))
+  P = matrizP(t(paramsNovo)[startsWith(colnames(paramsNovo), "alpha"), 1:(args$g-1)], args$R)
+
+  return(list(params = paramsNovo, P = P))
+}
+.S3method("etapaM", "MoECenST", etapaM.MoECenST)
 
 

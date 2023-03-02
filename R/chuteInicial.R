@@ -2,7 +2,7 @@ chuteInicial = function(y, X, args, ...){
   UseMethod("chuteInicial")
 }
 
-chuteInicial.MixNormal = function(y, X, args, initGrupo = "KMeans"){
+chuteInicial.MixNormal = function(y, X, args){
 
   dados = cbind(y, X[, -1])
 
@@ -19,8 +19,7 @@ chuteInicial.MixNormal = function(y, X, args, initGrupo = "KMeans"){
   params = do.call(rbind, mapply(estimaTeta.Normal,
                                  dadosGrupos$y,
                                  dadosGrupos$X,
-                                 SIMPLIFY = F,
-                                 MoreArgs = list(args = args)))
+                                 SIMPLIFY = F))
 
   P = prop.table(table(grupos))
 
@@ -47,8 +46,7 @@ chuteInicial.MoENormal = function(y, X, args, initGrupo = "KMeans"){
   params = do.call(rbind, mapply(estimaTeta.Normal,
                                  dadosGrupos$y,
                                  dadosGrupos$X,
-                                 SIMPLIFY = F,
-                                 MoreArgs = list(args = args)))
+                                 SIMPLIFY = F))
 
   P = matrix(rep(c(prop.table(table(grupos))), args$n), byrow = T, ncol = args$g)
   alpha = matrix(c(rep(0, (args$g-1)*k), rep(NA, k)), nrow = args$g, ncol = k, byrow = T)
@@ -78,8 +76,7 @@ chuteInicial.MixT = function(y, X, args, initGrupo = "KMeans"){
   params = do.call(rbind, mapply(estimaTeta.Normal,
                                  dadosGrupos$y,
                                  dadosGrupos$X,
-                                 SIMPLIFY = F,
-                                 MoreArgs = list(args = args)))
+                                 SIMPLIFY = F))
 
   params = as.matrix(cbind(params, "nu" = rep(5, args$g)))
 
@@ -89,5 +86,167 @@ chuteInicial.MixT = function(y, X, args, initGrupo = "KMeans"){
 }
 .S3method("chuteInicial", "MixT", chuteInicial.MixT)
 
+chuteInicial.MoET = function(y, X, args, initGrupo = "KMeans"){
 
+  k = ncol(args$R)
+  #dados = cbind(y, X[, -1])
+
+  if(is.null(args$initGrupo)) args$initGrupo = "KMeans"
+  grupos = switch(args$initGrupo,
+                  "KMeans" = kmeans(X[,-1], centers = args$g)$cluster,
+                  "Aleatório" = sample(1:args$g, args$n, replace = T)
+  )
+
+  dadosGrupos = lapply(list("X" = X, "y" = y),
+                       function(x, grupos) lapply(split(x, grupos),
+                                                  matrix, ncol=dim(as.matrix(x))[2]),
+                       grupos = grupos)
+
+  params = do.call(rbind, mapply(estimaTeta.Normal,
+                                 dadosGrupos$y,
+                                 dadosGrupos$X,
+                                 SIMPLIFY = F))
+
+  params = as.matrix(cbind(params, "nu" = rep(5, args$g)))
+
+  P = matrix(rep(c(prop.table(table(grupos))), args$n), byrow = T, ncol = args$g)
+  alpha = matrix(c(rep(0, (args$g-1)*k), rep(NA, k)),
+                 nrow = args$g, ncol = k, byrow = T)
+
+  colnames(alpha) = paste0("alpha", 1:k)
+  params = cbind(params, alpha = alpha)
+
+  return(list(params = params, P = P))
+}
+.S3method("chuteInicial", "MoET", chuteInicial.MoET)
+
+chuteInicial.MixSN = function(y, X, args){
+
+  dados = cbind(y, X[, -1])
+
+  if(is.null(args$initGrupo)) args$initGrupo = "KMeans"
+  grupos = switch(args$initGrupo,
+                  "KMeans" = kmeans(dados, centers = args$g)$cluster,
+                  "Aleatório" = sample(1:args$g, args$n, replace = T)
+  )
+
+  dadosGrupos = lapply(list("X" = X, "y" = y),
+                       function(x, grupos) lapply(split(x, grupos), matrix, ncol=dim(as.matrix(x))[2]),
+                       grupos = grupos)
+
+  params = do.call(rbind, mapply(estimaTeta.Normal,
+                                 dadosGrupos$y,
+                                 dadosGrupos$X,
+                                 SIMPLIFY = F))
+
+  medias = estimaMedia(X, params, args)
+
+  lambda = sapply(
+    1:args$g,
+    function(j)
+      moments::skewness(y[grupos == j]-medias[grupos == j, j])
+    )
+
+  params = cbind(
+    params,
+    "lambda" = lambda,
+    "delta" = params[, "sigma"]*(lambda/sqrt(1 + lambda**2)),
+    "gama" = (params[, "sigma"]**2)*(1 - (lambda/sqrt(1 + lambda**2))**2)
+  )
+  P = prop.table(table(grupos))
+
+  return(list(params = params, P = P))
+}
+.S3method("chuteInicial", "MixSN", chuteInicial.MixSN)
+
+chuteInicial.MoECenSN = function(y, X, args){
+
+  dados = cbind(y, X[, -1])
+
+  if(is.null(args$initGrupo)) args$initGrupo = "KMeans"
+  grupos = switch(args$initGrupo,
+                  "KMeans" = kmeans(dados, centers = args$g)$cluster,
+                  "Aleatório" = sample(1:args$g, args$n, replace = T)
+  )
+
+  dadosGrupos = lapply(list("X" = X, "y" = y),
+                       function(x, grupos) lapply(split(x, grupos), matrix, ncol=dim(as.matrix(x))[2]),
+                       grupos = grupos)
+
+  params = do.call(rbind, mapply(estimaTeta.Normal,
+                                 dadosGrupos$y,
+                                 dadosGrupos$X,
+                                 SIMPLIFY = F))
+
+  medias = estimaMedia(X, params, args)
+
+  lambda = sapply(
+    1:args$g,
+    function(j)
+      moments::skewness(y[grupos == j]-medias[grupos == j, j])
+  )
+
+  params = cbind(
+    params,
+    "lambda" = lambda,
+    "delta" = params[, "sigma"]*(lambda/sqrt(1 + lambda**2)),
+    "gama" = (params[, "sigma"]**2)*(1 - (lambda/sqrt(1 + lambda**2))**2)
+  )
+
+  P = matrix(rep(c(prop.table(table(grupos))), args$n), byrow = T, ncol = args$g)
+  alpha = matrix(c(rep(0, (args$g-1)*args$k), rep(NA, args$k)),
+                 nrow = args$g, ncol = args$k, byrow = T)
+
+  colnames(alpha) = paste0("alpha", 1:args$k)
+  params = cbind(params, alpha = alpha)
+
+  return(list(params = params, P = P))
+}
+.S3method("chuteInicial", "MoECenSN", chuteInicial.MoECenSN)
+
+chuteInicial.MoECenST = function(y, X, args){
+
+  dados = cbind(y)
+
+  if(is.null(args$initGrupo)) args$initGrupo = "KMeans"
+  grupos = switch(args$initGrupo,
+                  "KMeans" = kmeans(dados, centers = args$g)$cluster,
+                  "Aleatório" = sample(1:args$g, args$n, replace = T)
+  )
+
+  dadosGrupos = lapply(list("X" = X, "y" = y),
+                       function(x, grupos) lapply(split(x, grupos), matrix, ncol=dim(as.matrix(x))[2]),
+                       grupos = grupos)
+
+  params = do.call(rbind, mapply(estimaTeta.Normal,
+                                 dadosGrupos$y,
+                                 dadosGrupos$X,
+                                 SIMPLIFY = F))
+
+  medias = estimaMedia(X, params, args)
+
+  lambda = sapply(
+    1:args$g,
+    function(j)
+      moments::skewness(y[grupos == j]-medias[grupos == j, j])
+  )
+
+  params = cbind(
+    params,
+    "lambda" = lambda,
+    "delta" = params[, "sigma"]*(lambda/sqrt(1 + lambda**2)),
+    "gama" = (params[, "sigma"]**2)*(1 - (lambda/sqrt(1 + lambda**2))**2),
+    "nu" = ifelse(is.null(args$nu), rep(5, args$g), args$nu)
+  )
+
+  P = matrix(rep(c(prop.table(table(grupos))), args$n), byrow = T, ncol = args$g)
+  alpha = matrix(c(rep(0, (args$g-1)*args$k), rep(NA, args$k)),
+                 nrow = args$g, ncol = args$k, byrow = T)
+
+  colnames(alpha) = paste0("alpha", 1:args$k)
+  params = cbind(params, alpha = alpha)
+
+  return(list(params = params, P = P))
+}
+.S3method("chuteInicial", "MoECenST", chuteInicial.MoECenST)
 
