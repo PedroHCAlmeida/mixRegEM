@@ -58,7 +58,6 @@ rMoeEMST = function(ni, ci, tol = 1E-4, verbose = F){
   ki <- as.numeric(quantile(y, probs = ci))
   y[y <= ki] <- ki
   phi <- as.numeric(y == ki)
-  #result <- MoECST(y, X, R, 5, cen = ki, g = 2, maxIter = 10000, ordem = c(1,2), showEP = T)
   resultados = NULL
   while(is.null(resultados)){
     try({

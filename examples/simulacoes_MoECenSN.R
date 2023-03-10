@@ -84,22 +84,6 @@ resultadosMoECenSN = n |>
 
 rownames(resultadosMoECenSN) = paste("n =", n)
 
-n |>
-  plyr::laply(
-    function(ni){
-      nivelC |>
-        lapply(
-          function(ci){
-            write.csv(
-              do.call(rbind, lapply(1:500, function(i) resultadosMoECenSN[paste("n =", ni), paste("Cen =", ci)][[1]][,,i])),
-              file = sprintf("resultados_%s_%s", paste("n =", ni), paste("Cen =", ci))
-            )
-          }
-        ) |>
-        setNames(paste("Cen =", nivelC))
-    }, .progress = "text"
-  )
-
 parametros =cbind(c(
   beta01, sqrt(sigma2_01), lambda01, alpha01
 ),
