@@ -69,8 +69,6 @@ rMoeEM = function(ni, ci, tol = 1E-4, verbose = F){
     )$Parametros
 }
 
-rMoeEM(500, 0.075, tol = 1E-6, verbose = T)
-
 resultadosMoECenSN = n |>
   plyr::laply(
     function(ni){
@@ -109,46 +107,25 @@ erros = n |>
       nivelC |>
         lapply(
           function(ci){
-            lapply(
-              1:dim(resultadosMoECenSN[paste("n =", ni), paste("Cen =", ci)][[1]])[3],
-              function(i){
-                x = resultadosMoECenSN[paste("n =", ni), paste("Cen =", ci)][[1]][,,i]
+            apply(
+              resultadosMoECenSN[paste("n =", ni), paste("Cen =", ci)][[1]],
+              3,
+              function(x){
 
                 res1 = x[startsWith(rownames(x), "beta"),1] - parametros[startsWith(rownames(parametros), "beta"),1]
                 res2 = x[startsWith(rownames(x), "beta"),1] - parametros[startsWith(rownames(parametros), "beta"),2]
 
                 if(sum(res1**2) > sum(res2**2)) x = inverte_col(x)
 
-                x = x[!rownames(x) %in% c("delta", "gama"),]
-
-                return(x - parametros)
-              }
-              )
-          }
-        ) |>
-        setNames(paste("Cen =", nivelC))
-    }, .progress = "text"
-  )
-
-rownames(erros) = paste("n =", n)
-
-erros_MoECenSN = erros
-
-erros = n |>
-  plyr::laply(
-    function(ni){
-      nivelC |>
-        lapply(
-          function(ci){
-            lapply(
-              erros_MoECenSN[paste("n =", ni),paste("Cen =", ci)][[1]],
-              function(x){
                 params = rownames(x)
-                x = data.frame(x)
+                x = x[!params %in% c("delta", "gama"),]
 
-                x$cen = ci
+                x = x - parametros
+
+                x = data.frame(x)
                 x$n = ni
-                x$params = params
+                x$cen = ci
+                x$params = params[!params %in% c("delta", "gama")]
 
                 return(x)
               }
@@ -162,7 +139,6 @@ erros = n |>
 
 errosMoECenSN = erros |>
   tidyr::pivot_longer(paste0("X", 1:g), names_to = "grupo", values_to = "vies")
-
 
 save(errosMoECenSN, file = "errosMoECenSN.RData")
 
