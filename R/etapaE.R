@@ -202,9 +202,22 @@ etapaE.MoECenST = function(y, X, params, medias, args, ...){
                 mu = medias[i, j],
                 Sigma = as.matrix(params$params[j,"sigma"]^2),
                 lambda = as.matrix(params$params[j,"lambda"]),
-                nu = as.matrix(params$params[j,"nu"]+2),
+                nu = as.matrix(round(params$params[j,"nu"])+2),
                 dist = 'ST')[c(1,2)]
           )
+
+      # moments = sapply(
+      #   which(phi1),
+      #   function(i)
+      #     MomTrunc::meanvarTMD(
+      #       lower = args$c1,
+      #       upper = args$c2,
+      #       mu = medias[i, j],
+      #       Sigma = params$params[j,"sigma"]^2,
+      #       lambda = params$params[j,"lambda"],
+      #       nu = round(params$params[j,"nu"])+2,
+      #       dist = 'ST')[c(1,2)]
+      # )
 
 
       e01[!phi1] = e00[!phi1]*y[!phi1]
@@ -216,8 +229,14 @@ etapaE.MoECenST = function(y, X, params, medias, args, ...){
       w0[phi1] = sapply(
             which(phi1),
             function(i) MomTrunc::MCmeanvarTMD(lower = args$c1, upper = args$c2, mu = medias[i, j],
-                                               Sigma = as.matrix(sigma__**2), nu = as.matrix(params$params[j,"nu"]+1), dist = 't')$mean
+                                             Sigma = as.matrix(sigma__**2), nu = as.matrix(round(params$params[j,"nu"])+1), dist = 't')$mean
           )
+
+      # w0[phi1] = sapply(
+      #   which(phi1),
+      #   function(i) MomTrunc::meanvarTMD(lower = args$c1, upper = args$c2, mu = medias[i, j],
+      #                                    Sigma = sigma__**2, nu = round(params$params[j,"nu"]+1), dist = 't')$mean
+      # )
 
       aij = params$params[j,"lambda"]*(y[!phi1] - medias[!phi1,j])/params$params[j,"sigma"]
 
@@ -237,6 +256,8 @@ etapaE.MoECenST = function(y, X, params, medias, args, ...){
       e11[phi1] = MuAux*(e02[phi1]-e01[phi1]*medias[phi1,j])+
         MT*cv*(R0_F0)*w0[phi1]
 
+
+
       return(list(Z, e00, e01, e02, e10, e20, e11))
       })
 
@@ -244,6 +265,7 @@ etapaE.MoECenST = function(y, X, params, medias, args, ...){
     setNames(c("Z", "e00", "e01", "e02", "e10", "e20", "e11"))
   soma_z = apply(U$Z, 1, sum)
   U$Z = sapply(1:args$g, function(j) U$Z[,j]/soma_z)
+
   return(U)
 }
 .S3method("etapaE", "MoECenST", etapaE.MoECenST)

@@ -213,13 +213,16 @@ etapaM.MoECenST = function(y, X, U, params, args){
       )))
   }
 
-  nu = optim(params$params[,"nu"],
-             fn = Q,
-             method = "L-BFGS-B",
-             lower = 1,
-             upper = 15,
-             control = list(fnscale = -1)
-  )$par
+  if(is.null(args$nuFixo)){
+    nu = optim(params$params[,"nu"],
+               fn = Q,
+               method = "L-BFGS-B",
+               lower = 1,
+               upper = 20,
+               control = list(fnscale = -1)
+    )$par
+  }
+  else nu = params$params[,"nu"]
 
   paramsNovo = as.matrix(cbind(paramsNovo, "nu" = as.numeric(nu)))
   P = matrizP(t(paramsNovo)[startsWith(colnames(paramsNovo), "alpha"), 1:(args$g-1)], args$R)

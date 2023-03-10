@@ -20,6 +20,8 @@ regEM = function(y, x, g = 2, ..., tol = 1E-6, family = "MixNormal",
   args = list(...)
   args$n = length(y)
   args$g = g
+  args$verbose = verbose
+  args$tol = tol
 
   X = cbind(rep(1, args$n), x)
   args$p = ncol(X)

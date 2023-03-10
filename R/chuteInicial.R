@@ -206,6 +206,63 @@ chuteInicial.MoECenSN = function(y, X, args){
 
 chuteInicial.MoECenST = function(y, X, args){
 
+  if(is.null(args$nuFixo)){
+
+    if(is.null(args$nu)){
+      nuFixo = rep(5, args$g)
+    } else{
+      nuFixo = args$nu
+    }
+
+    regNufixo = regEM(
+      y = y,
+      x = X[,-1],
+      r = args$R[,-1],
+      g = args$g,
+      tol = args$tol,
+      family = "MoECenST",
+      phi = args$phi,
+      c1 = args$c1,
+      c2 = args$c2,
+      verbose = args$verbose,
+      nuFixo = nuFixo
+      )
+
+    params = t(regNufixo$Parametros)
+    P = regNufixo$P
+
+    medias = X %*% t(params[, startsWith(colnames(params), "beta")])
+    Q = function(NU){
+      sum(log(dMix.MoECenST(
+        y = y,
+        medias = medias,
+        sigma = params[,"sigma"],
+        lambda = params[,"lambda"],
+        nu = NU,
+        P = P,
+        args = args
+      )))
+    }
+
+    nu = optim(rep(5, args$g),
+               fn = Q,
+               method = "L-BFGS-B",
+               lower = 1,
+               upper = 30,
+               control = list(fnscale = -1)
+    )$par
+
+    paramsNovo = as.matrix(cbind(params, "nu" = as.numeric(nu)))
+
+    return(list(params = params, P = P))
+  } else{
+    chuteInicial.MoECenSTNuFixo(y, X, args)
+  }
+}
+.S3method("chuteInicial", "MoECenST", chuteInicial.MoECenST)
+
+chuteInicial.MoECenSTNuFixo = function(y, X, args){
+
   dados = cbind(y)
 
   if(is.null(args$initGrupo)) args$initGrupo = "KMeans"

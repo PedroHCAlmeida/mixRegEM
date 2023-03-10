@@ -62,8 +62,8 @@ dMix.MoECenST = function(y, medias, beta, sigma, lambda, nu, P, args){
   return(sapply(1:args$g,
                 function(j){
                   total = numeric(args$n)
-                  total[!phi1] = P[!phi1,j]*sn::dst(x = y[!phi1], xi = medias[!phi1,j], omega = sigma[j], alpha = lambda[j], nu = nu[j])
-                  total[phi1] = P[phi1,j]*(sn::pst(rep(args$c2, sum(phi1)),  medias[phi1,j], sigma[j], lambda[j], nu[j])-sn::pst(rep(args$c1, sum(phi1)), medias[phi1,j], sigma[j],  lambda[j], nu[j]))
+                  total[!phi1] = P[!phi1, j]*sn::dst(x = y[!phi1], xi = medias[!phi1, j], omega = sigma[j], alpha = lambda[j], nu = nu[j])
+                  total[phi1] = P[phi1, j]*(sn::pst(rep(args$c2, sum(phi1)),  medias[phi1,j], sigma[j], lambda[j], nu[j])-sn::pst(rep(args$c1, sum(phi1)), medias[phi1,j], sigma[j],  lambda[j], nu[j]))
                   total
                 }) |>
            rowSums())
