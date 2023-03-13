@@ -219,13 +219,13 @@ chuteInicial.MoECenST = function(y, X, args){
       x = X[,-1],
       r = args$R[,-1],
       g = args$g,
-      tol = args$tol,
       family = "MoECenST",
       phi = args$phi,
       c1 = args$c1,
       c2 = args$c2,
       verbose = args$verbose,
-      nuFixo = nuFixo
+      nuFixo = nuFixo,
+      max_iter = 50
       )
 
     params = t(regNufixo$Parametros)
