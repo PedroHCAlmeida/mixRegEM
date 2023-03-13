@@ -225,6 +225,7 @@ chuteInicial.MoECenST = function(y, X, args){
       c2 = args$c2,
       verbose = args$verbose,
       nuFixo = nuFixo,
+      tol = args$tol*10,
       max_iter = 50
       )
 
