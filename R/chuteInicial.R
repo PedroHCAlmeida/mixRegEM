@@ -206,28 +206,30 @@ chuteInicial.MoECenSN = function(y, X, args){
 
 chuteInicial.MoECenST = function(y, X, args){
 
-  if(is.null(args$nuFixo)){
+  # if(is.null(args$nuFixo)){
+  #
+  #   if(is.null(args$nu)){
+  #     nuFixo = rep(5, args$g)
+  #   } else{
+  #     nuFixo = args$nu
+  #   }
 
-    if(is.null(args$nu)){
-      nuFixo = rep(5, args$g)
-    } else{
-      nuFixo = args$nu
-    }
+  dados = y
 
-    regNufixo = regEM(
-      y = y,
-      x = X[,-1],
-      r = args$R[,-1],
-      g = args$g,
-      family = "MoECenST",
-      phi = args$phi,
-      c1 = args$c1,
-      c2 = args$c2,
-      verbose = args$verbose,
-      nuFixo = nuFixo,
-      tol = args$tol*10,
-      max_iter = 50
-      )
+  if(is.null(args$initGrupo)) args$initGrupo = "KMeans"
+  grupos = switch(args$initGrupo,
+                  "KMeans" = kmeans(dados, centers = args$g)$cluster,
+                  "Aleatório" = sample(1:args$g, args$n, replace = T)
+  )
+
+  dadosGrupos = lapply(list("X" = X, "y" = y),
+                       function(x, grupos) lapply(split(x, grupos), matrix, ncol=dim(as.matrix(x))[2]),
+                       grupos = grupos)
+
+  params = do.call(rbind, mapply(estimaTeta.Normal,
+                                 dadosGrupos$y,
+                                 dadosGrupos$X,
+                                 SIMPLIFY = F))
 
     params = t(regNufixo$Parametros)
     P = regNufixo$P
@@ -256,9 +258,9 @@ chuteInicial.MoECenST = function(y, X, args){
     paramsNovo = as.matrix(cbind(params, "nu" = as.numeric(nu)))
 
     return(list(params = params, P = P))
-  } else{
-    chuteInicial.MoECenSTNuFixo(y, X, args)
-  }
+  # } else{
+  #   chuteInicial.MoECenSTNuFixo(y, X, args)
+  # }
 }
 .S3method("chuteInicial", "MoECenST", chuteInicial.MoECenST)
 
