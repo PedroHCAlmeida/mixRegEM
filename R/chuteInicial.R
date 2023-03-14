@@ -214,23 +214,6 @@ chuteInicial.MoECenST = function(y, X, args){
   #     nuFixo = args$nu
   #   }
 
-  dados = y
-
-  if(is.null(args$initGrupo)) args$initGrupo = "KMeans"
-  grupos = switch(args$initGrupo,
-                  "KMeans" = kmeans(dados, centers = args$g)$cluster,
-                  "Aleatório" = sample(1:args$g, args$n, replace = T)
-  )
-
-  dadosGrupos = lapply(list("X" = X, "y" = y),
-                       function(x, grupos) lapply(split(x, grupos), matrix, ncol=dim(as.matrix(x))[2]),
-                       grupos = grupos)
-
-  params = do.call(rbind, mapply(estimaTeta.Normal,
-                                 dadosGrupos$y,
-                                 dadosGrupos$X,
-                                 SIMPLIFY = F))
-
   regSN = regEM(
     y,
     X[,-1],
