@@ -231,10 +231,25 @@ chuteInicial.MoECenST = function(y, X, args){
                                  dadosGrupos$X,
                                  SIMPLIFY = F))
 
-    params = t(regNufixo$Parametros)
-    P = regNufixo$P
+  regSN = regEM(
+    y,
+    X[,-1],
+    family = "MoECenSN",
+    phi = args$phi,
+    c1 = args$c1,
+    c2 = args$c1,
+    g = args$g,
+    showSE = F,
+    verbose = F,
+    tol = 1E-4,
+    max_iter = 50
+  )
+
+    params = t(regSN$Parametros)
+    P = regSN$P
 
     medias = X %*% t(params[, startsWith(colnames(params), "beta")])
+
     Q = function(NU){
       sum(log(dMix.MoECenST(
         y = y,
@@ -247,7 +262,7 @@ chuteInicial.MoECenST = function(y, X, args){
       )))
     }
 
-    nu = optim(rep(5, args$g),
+    nu = optim(rep(30, args$g),
                fn = Q,
                method = "L-BFGS-B",
                lower = 1,
