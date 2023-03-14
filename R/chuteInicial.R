@@ -204,65 +204,65 @@ chuteInicial.MoECenSN = function(y, X, args){
 }
 .S3method("chuteInicial", "MoECenSN", chuteInicial.MoECenSN)
 
+# chuteInicial.MoECenST = function(y, X, args){
+#
+#   # if(is.null(args$nuFixo)){
+#   #
+#   #   if(is.null(args$nu)){
+#   #     nuFixo = rep(5, args$g)
+#   #   } else{
+#   #     nuFixo = args$nu
+#   #   }
+#
+#   # regSN = regEM(
+#   #   y,
+#   #   X[,-1],
+#   #   family = "MoECenSN",
+#   #   phi = args$phi,
+#   #   c1 = args$c1,
+#   #   c2 = args$c1,
+#   #   g = args$g,
+#   #   showSE = F,
+#   #   verbose = F,
+#   #   tol = 1E-4,
+#   #   max_iter = 50
+#   # )
+#   #
+#   #   params = t(regSN$Parametros)
+#   #   P = regSN$P
+#
+#     medias = X %*% t(params[, startsWith(colnames(params), "beta")])
+#
+#     Q = function(NU){
+#       sum(log(dMix.MoECenST(
+#         y = y,
+#         medias = medias,
+#         sigma = params[,"sigma"],
+#         lambda = params[,"lambda"],
+#         nu = NU,
+#         P = P,
+#         args = args
+#       )))
+#     }
+#
+#     nu = optim(rep(30, args$g),
+#                fn = Q,
+#                method = "L-BFGS-B",
+#                lower = 1,
+#                upper = 30,
+#                control = list(fnscale = -1)
+#     )$par
+#
+#     paramsNovo = as.matrix(cbind(params, "nu" = as.numeric(nu)))
+#
+#     return(list(params = params, P = P))
+#   # } else{
+#   #   chuteInicial.MoECenSTNuFixo(y, X, args)
+#   # }
+# }
+# .S3method("chuteInicial", "MoECenST", chuteInicial.MoECenST)
+
 chuteInicial.MoECenST = function(y, X, args){
-
-  # if(is.null(args$nuFixo)){
-  #
-  #   if(is.null(args$nu)){
-  #     nuFixo = rep(5, args$g)
-  #   } else{
-  #     nuFixo = args$nu
-  #   }
-
-  regSN = regEM(
-    y,
-    X[,-1],
-    family = "MoECenSN",
-    phi = args$phi,
-    c1 = args$c1,
-    c2 = args$c1,
-    g = args$g,
-    showSE = F,
-    verbose = F,
-    tol = 1E-4,
-    max_iter = 50
-  )
-
-    params = t(regSN$Parametros)
-    P = regSN$P
-
-    medias = X %*% t(params[, startsWith(colnames(params), "beta")])
-
-    Q = function(NU){
-      sum(log(dMix.MoECenST(
-        y = y,
-        medias = medias,
-        sigma = params[,"sigma"],
-        lambda = params[,"lambda"],
-        nu = NU,
-        P = P,
-        args = args
-      )))
-    }
-
-    nu = optim(rep(30, args$g),
-               fn = Q,
-               method = "L-BFGS-B",
-               lower = 1,
-               upper = 30,
-               control = list(fnscale = -1)
-    )$par
-
-    paramsNovo = as.matrix(cbind(params, "nu" = as.numeric(nu)))
-
-    return(list(params = params, P = P))
-  # } else{
-  #   chuteInicial.MoECenSTNuFixo(y, X, args)
-  # }
-}
-.S3method("chuteInicial", "MoECenST", chuteInicial.MoECenST)
-
-chuteInicial.MoECenSTNuFixo = function(y, X, args){
 
   dados = cbind(y)
 
