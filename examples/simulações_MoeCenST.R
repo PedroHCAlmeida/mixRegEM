@@ -7,7 +7,7 @@ library(sn)
 library(moments)
 library(mixsmsn)
 library(numDeriv)
-library(mixRegEM)
+#library(mixRegEM)
 
 matrizP2 <- function(alpha, R){
   P1 <- exp(R%*%t(alpha))/(1 + rowSums(exp(R%*%t(alpha))))
@@ -15,11 +15,11 @@ matrizP2 <- function(alpha, R){
   return(P)
 }
 
-set.seed(123)
-
-n <- c(50, 100, 200, 500, 1000)
-nivelC <- c(0.075, 0.15, 0.3)
+n <- c(100, 200, 500, 1000)
+nivelC <- c(0, 0.075, 0.15, 0.3)
 g <- 2
+tol = 1E-5
+M = 1
 
 beta01 <- c(0, -1, -2, -3)
 alpha01 <- c(0.7, 1, 2)
@@ -30,7 +30,7 @@ beta02 <- c(-1, 1, 2, 3)
 sigma2_02 <- 2
 lambda02 <- 3
 
-nu <- 3
+nu = c(2, 4)
 
 alpha <- matrix(alpha01, byrow = T, nrow = 1)
 
@@ -55,43 +55,50 @@ rMoeEMST = function(ni, ci, tol = 1E-4, verbose = F){
     grupo[ii] <- obs$cluster
   }
 
-  ki <- as.numeric(quantile(y, probs = ci))
-  y[y <= ki] <- ki
-  phi <- as.numeric(y == ki)
+  c2 = as.numeric(quantile(y, probs = ci))
+  y[y<=c2] = c2
+
+  phi <- as.numeric(y == c2)
+
   resultados = NULL
   while(is.null(resultados)){
     try({
       resultados = regEM(
-        y,
-        X[,-1],
-        r = R[,-1],
-        family = "MoECenST",
-        phi = phi,
-        c1 = -Inf,
-        c2 = ki,
-        g = 2,
-        showSE = F,
-        verbose = verbose,
-        tol = tol
-      )$Parametros
+          y,
+          X[,-1],
+          r = R[,-1],
+          family = "MoECenST",
+          phi = phi,
+          c1 = -Inf,
+          c2 = c2,
+          g = 2,
+          showSE = F,
+          verbose = verbose,
+          tol = tol
+        )$Parametros
     })
   }
+  return(resultados)
 }
 
-resultadosMoECenST = n |>
+start = Sys.time()
+set.seed(123)
+resultadosMoECenST = n[1] |>
   plyr::laply(
     function(ni){
       nivelC |>
         lapply(
-          function(ci) replicate(500, rMoeEMST(ni, ci, tol = 1E-4))
+          function(ci) replicate(M, rMoeEMST(ni, ci, tol = tol))
         ) |>
         setNames(paste("Cen =", nivelC))
     }, .progress = "text"
   )
+end = Sys.time()
+print(end-start)
 
 rownames(resultadosMoECenST) = paste("n =", n)
 
-parametros =cbind(c(
+parametros = cbind(c(
   beta01, sqrt(sigma2_01), lambda01, alpha01, nu
 ),
 c(
@@ -151,7 +158,7 @@ erros = n |>
 erros_MoECenST = erros |>
   tidyr::pivot_longer(paste0("X", 1:g), names_to = "grupo", values_to = "vies")
 
-save(erros_MoECenST, file = "erros_MoECenST_4.RData")
+save(erros_MoECenST, file = "erros_MoECenST_5.RData")
 
 
 

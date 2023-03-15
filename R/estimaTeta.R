@@ -7,7 +7,7 @@ estimaTeta.Normal = function(y, X){
   Xl = t(X)
   beta = solve(Xl%*%X)%*%(Xl%*%y)
 
-  sigma = sqrt(sum((y - (X%*%beta))^2)/(nrow(y) - ncol(X)))
+  sigma = sqrt(sum((y - (X%*%beta))^2)/(length(y) - ncol(X)))
 
   c(beta = beta, sigma = sigma)
 }

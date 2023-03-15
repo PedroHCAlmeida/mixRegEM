@@ -49,7 +49,7 @@ dMix.MoECenSN = function(y, medias, beta, sigma, lambda, P, args){
          function(j){
            total = numeric(args$n)
            total[!phi1] = P[!phi1,j]*sn::dsn(y[!phi1], medias[!phi1,j], sigma[j], lambda[j])
-           total[phi1] = P[phi1,j]*(sn::psn(rep(args$c2, args$m),  medias[phi1,j], sigma[j], lambda[j])-sn::psn(rep(args$c1, args$m), medias[phi1,j], sigma[j],  lambda[j]))
+           total[phi1] = P[phi1,j]*(sn::psn(args$c2,  medias[phi1,j], sigma[j], lambda[j])-sn::psn(args$c1, medias[phi1,j], sigma[j],  lambda[j]))
            total
            }) |>
     rowSums())
@@ -63,7 +63,7 @@ dMix.MoECenST = function(y, medias, beta, sigma, lambda, nu, P, args){
                 function(j){
                   total = numeric(args$n)
                   total[!phi1] = P[!phi1, j]*sn::dst(x = y[!phi1], xi = medias[!phi1, j], omega = sigma[j], alpha = lambda[j], nu = nu[j])
-                  total[phi1] = P[phi1, j]*(sn::pst(rep(args$c2, sum(phi1)),  medias[phi1,j], sigma[j], lambda[j], nu[j])-sn::pst(rep(args$c1, sum(phi1)), medias[phi1,j], sigma[j],  lambda[j], nu[j]))
+                  total[phi1] = P[phi1, j]*(sn::pst(args$c2,  medias[phi1,j], sigma[j], lambda[j], nu[j])-sn::pst(args$c1, medias[phi1,j], sigma[j],  lambda[j], nu[j]))
                   total
                 }) |>
            rowSums())

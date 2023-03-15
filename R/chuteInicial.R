@@ -264,7 +264,7 @@ chuteInicial.MoECenSN = function(y, X, args){
 
 chuteInicial.MoECenST = function(y, X, args){
 
-  dados = cbind(y)
+  dados = y
 
   if(is.null(args$initGrupo)) args$initGrupo = "KMeans"
   grupos = switch(args$initGrupo,
@@ -281,7 +281,7 @@ chuteInicial.MoECenST = function(y, X, args){
                                  dadosGrupos$X,
                                  SIMPLIFY = F))
 
-  medias = estimaMedia(X, params, args)
+  medias = X %*% t(params[, startsWith(colnames(params), "beta")])
 
   lambda = sapply(
     1:args$g,
@@ -293,8 +293,7 @@ chuteInicial.MoECenST = function(y, X, args){
     params,
     "lambda" = lambda,
     "delta" = params[, "sigma"]*(lambda/sqrt(1 + lambda**2)),
-    "gama" = (params[, "sigma"]**2)*(1 - (lambda/sqrt(1 + lambda**2))**2),
-    "nu" = nu
+    "gama" = (params[, "sigma"]**2)*(1 - (lambda/sqrt(1 + lambda**2))**2)
   )
 
   P = matrix(rep(c(prop.table(table(grupos))), args$n), byrow = T, ncol = args$g)
@@ -302,7 +301,6 @@ chuteInicial.MoECenST = function(y, X, args){
                  nrow = args$g, ncol = args$k, byrow = T)
 
   colnames(alpha) = paste0("alpha", 1:args$k)
-  params = cbind(params, alpha = alpha)
 
   Q = function(NU){
     sum(log(dMix.MoECenST(
@@ -323,6 +321,8 @@ chuteInicial.MoECenST = function(y, X, args){
              upper = 30,
              control = list(fnscale = -1)
   )$par
+
+  params = cbind(params, nu = nu, alpha = alpha)
 
   return(list(params = params, P = P))
 }

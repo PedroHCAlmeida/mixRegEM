@@ -1,9 +1,13 @@
 # Mistura dos experts ST com resposta censurada à esquerda
+
+# Mistura dos experts ST com resposta censurada à esquerda
+
 library(MomTrunc) # Sempre passar a sigma² como parâmetro nas funções
 library(sn)
 library(moments)
 library(mixsmsn)
 library(numDeriv)
+library(future.apply)
 #library(mixRegEM)
 
 matrizP2 <- function(alpha, R){
@@ -12,11 +16,11 @@ matrizP2 <- function(alpha, R){
   return(P)
 }
 
-set.seed(123)
-
-n <- c(50, 100, 200, 500)
-nivelC <- c(0.075, 0.15, 0.3)
+n <- c(100, 200, 500, 1000)
+nivelC <- c(0, 0.075, 0.15, 0.3)
 g <- 2
+tol = 1E-3
+M = 1
 
 beta01 <- c(0, -1, -2, -3)
 alpha01 <- c(0.7, 1, 2)
@@ -27,9 +31,11 @@ beta02 <- c(-1, 1, 2, 3)
 sigma2_02 <- 2
 lambda02 <- 3
 
+nu = c(2, 4)
+
 alpha <- matrix(alpha01, byrow = T, nrow = 1)
 
-rMoeEM = function(ni, ci, tol = 1E-4, verbose = F){
+rMoeEMST = function(ni, ci, tol = 1E-4, verbose = F){
   X <- cbind(rep(1, ni), runif(ni, 1, 5), runif(ni, -2, 2), runif(ni, 1, 4))
   R <- cbind(rep(1, ni), runif(ni, -2, 1), runif(ni, -1, 1))
 
@@ -41,42 +47,56 @@ rMoeEM = function(ni, ci, tol = 1E-4, verbose = F){
   grupo <- numeric(ni)
   y <- numeric(ni)
   for(ii in 1:ni){
-    arg1 <- list(mu = mu01[ii], sigma2 = sigma2_01, shape = lambda01)
-    arg2 <- list(mu = mu02[ii], sigma2 = sigma2_02, shape = lambda02)
+    arg1 <- list(mu = mu01[ii], sigma2 = sigma2_01, shape = lambda01, nu = nu)
+    arg2 <- list(mu = mu02[ii], sigma2 = sigma2_02, shape = lambda02, nu = nu)
 
-    obs <- rmix(1, pii = P[ii,], family = 'Skew.normal', arg = list(arg1, arg2), cluster = T)
+    obs <- rmix(1, pii = P[ii,], family = 'Skew.t', arg = list(arg1, arg2), cluster = T)
 
     y[ii] <- obs$y
     grupo[ii] <- obs$cluster
   }
 
-  ki <- as.numeric(quantile(y, probs = ci))
-  y[y <= ki] <- ki
-  phi <- as.numeric(y == ki)
-  resultados =
-    regEM(
-      y,
-      X[,-1],
-      r = R[,-1],
-      family = "MoECenSN",
-      phi = phi,
-      c1 = -Inf,
-      c2 = ki,
-      g = 2,
-      showSE = F,
-      verbose = verbose,
-      tol = tol
-    )$Parametros
+  nc = floor(ni*ci)+1
+  ind_censored = sort(sample(1:ni, nc, replace = F))
+  u = runif(nc)
+
+  c1 = mapply(function(ic, i) max(c(y[ic] - u[i], y[ic]+u[i]-1)), ind_censored, 1:length(ind_censored))
+  c2 = mapply(function(ic, i) min(c(y[ic] + u[i], y[ic]-u[i]+1)), ind_censored, 1:length(ind_censored))
+
+  for(i in 1:length(ind_censored)){
+    y[ind_censored[i]] = (c1[i]+c2[i])/2
+  }
+  phi <- as.numeric(1:length(y) %in% ind_censored)
+
+  resultados = NULL
+  while(is.null(resultados)){
+    try({
+      resultados = regEM(
+          y,
+          X[,-1],
+          r = R[,-1],
+          family = "MoECenST",
+          phi = phi,
+          c1 = c1,
+          c2 = c2,
+          g = 2,
+          showSE = F,
+          verbose = verbose,
+          tol = tol
+        )$Parametros
+    })
+  }
+  return(resultados)
 }
 
 start = Sys.time()
 set.seed(123)
-resultadosMoECenSN = n |>
+resultadosMoECenST = n[1] |>
   plyr::laply(
     function(ni){
       nivelC |>
         lapply(
-          function(ci) replicate(500, rMoeEM(ni, ci))
+          function(ci) replicate(M, rMoeEMST(ni, ci, tol = tol))
         ) |>
         setNames(paste("Cen =", nivelC))
     }, .progress = "text"
@@ -84,15 +104,17 @@ resultadosMoECenSN = n |>
 end = Sys.time()
 print(end-start)
 
-rownames(resultadosMoECenSN) = paste("n =", n)
+rownames(resultadosMoECenST) = paste("n =", n)
 
-parametros =cbind(c(
-  beta01, sqrt(sigma2_01), lambda01, alpha01
+parametros = cbind(c(
+  beta01, sqrt(sigma2_01), lambda01, alpha01, nu
 ),
 c(
-  beta02, sqrt(sigma2_02), lambda02, rep(NA, 3)
+  beta02, sqrt(sigma2_02), lambda02, rep(NA, 3), nu
 )
 )
+
+rownames(parametros) = c(paste0("beta", 1:4), "sigma", "lambda", paste0("alpha", 1:3), "nu")
 
 inverte_col = function(df){
   df_inv = df
@@ -112,7 +134,7 @@ erros = n |>
         lapply(
           function(ci){
             apply(
-              resultadosMoECenSN[paste("n =", ni), paste("Cen =", ci)][[1]],
+              resultadosMoECenST[paste("n =", ni), paste("Cen =", ci)][[1]],
               3,
               function(x){
 
@@ -141,25 +163,10 @@ erros = n |>
   dplyr::bind_rows() |>
   dplyr::as_tibble()
 
-errosMoECenSN = erros |>
+erros_MoECenST = erros |>
   tidyr::pivot_longer(paste0("X", 1:g), names_to = "grupo", values_to = "vies")
 
-save(errosMoECenSN, file = "errosMoECenSN.RData")
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+save(erros_MoECenST, file = "erros_MoECenST_5.RData")
 
 
 

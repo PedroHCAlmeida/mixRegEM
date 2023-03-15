@@ -31,7 +31,13 @@ regEM = function(y, x, g = 2, ..., tol = 1E-6, family = "MixNormal",
     args$k = ncol(args$R)
   })
 
-  try({args$m = sum(args$phi == 1)})
+  try({
+    args$m = sum(args$phi == 1)
+    if(length(args$c1) != args$m){
+      args$c1 = rep(args$c1, args$m)
+      args$c2 = rep(args$c2, args$m)
+    }
+    })
 
   y = eval(parse(text = family))(y)
   X = eval(parse(text = family))(X)
