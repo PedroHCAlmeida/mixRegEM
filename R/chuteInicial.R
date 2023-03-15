@@ -289,26 +289,6 @@ chuteInicial.MoECenST = function(y, X, args){
       moments::skewness(y[grupos == j]-medias[grupos == j, j])
   )
 
-  Q = function(NU){
-          sum(log(dMix.MoECenST(
-            y = y,
-            medias = medias,
-            sigma = params[,"sigma"],
-            lambda = params[,"lambda"],
-            nu = NU,
-            P = P,
-            args = args
-          )))
-        }
-
-  nu = optim(rep(30, args$g),
-             fn = Q,
-             method = "L-BFGS-B",
-             lower = 1,
-             upper = 30,
-             control = list(fnscale = -1)
-    )$par
-
   params = cbind(
     params,
     "lambda" = lambda,
@@ -323,6 +303,26 @@ chuteInicial.MoECenST = function(y, X, args){
 
   colnames(alpha) = paste0("alpha", 1:args$k)
   params = cbind(params, alpha = alpha)
+
+  Q = function(NU){
+    sum(log(dMix.MoECenST(
+      y = y,
+      medias = medias,
+      sigma = params[,"sigma"],
+      lambda = params[,"lambda"],
+      nu = NU,
+      P = P,
+      args = args
+    )))
+  }
+
+  nu = optim(rep(30, args$g),
+             fn = Q,
+             method = "L-BFGS-B",
+             lower = 1,
+             upper = 30,
+             control = list(fnscale = -1)
+  )$par
 
   return(list(params = params, P = P))
 }
