@@ -70,8 +70,6 @@ estimaTeta.MixSN = function(y, X, medias, Z, t1, t2, deltaAtual){
 
 estimaTeta.MoECenSN = function(y, X, R, Z, e01, e02, e10, e20, e11, delta, alpha, P){
 
-  b = -sqrt(2/pi)
-
   beta = solve(t(X)%*%diag(Z)%*%X)%*%(t(X)%*%(Z*(e01-e10*delta)))
   medias = X%*%beta
   delta = sum(Z*(e11-e10*medias))/sum(Z*e20)
@@ -87,8 +85,6 @@ estimaTeta.MoECenSN = function(y, X, R, Z, e01, e02, e10, e20, e11, delta, alpha
 .S3method("estimaTeta", "MoECenSN", estimaTeta.MoECenSN)
 
 estimaTeta.MoECenST = function(y, X, R, Z, e00, e01, e02, e10, e20, e11, delta, alpha, P){
-
-  b = -sqrt(2/pi)
 
   beta = solve(t(X)%*%diag(Z*e00)%*%X)%*%(t(X)%*%(Z*(e01-e10*delta)))
   medias = X%*%beta
