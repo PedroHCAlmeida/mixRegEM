@@ -1,6 +1,11 @@
 matrizP <- function(alpha, R){
-  P1 <- exp(R%*%alpha)/(1 + rowSums(exp(R%*%alpha)))
-  P <- cbind(P1, 1 - rowSums(P1))
+
+  if(any(is.na(alpha))){
+    P = as.matrix(rep(1, nrow(R)))
+  } else{
+    P1 <- exp(R%*%alpha)/(1 + rowSums(exp(R%*%alpha)))
+    P <- cbind(P1, 1 - rowSums(P1))
+  }
   return(P)
 }
 

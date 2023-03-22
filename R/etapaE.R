@@ -112,10 +112,16 @@ etapaE.MoECenSN = function(y, X, params, medias, args, ...){
       #     )
 
       moments = mapply(
-        function(ic, i)
-          MomTrunc::meanvarTMD(lower = args$c1[i], upper = args$c2[i], mu = medias[ic, j],
+        function(ic, i){
+          if(params$params[j,"lambda"] == 0){
+            return(MomTrunc::meanvarTMD(lower = args$c1[i], upper = args$c2[i], mu = medias[ic, j],
+                                 Sigma = params$params[j,"sigma"]^2,
+                                 dist = "normal")[c(1,2)])
+          }else{
+            return(MomTrunc::meanvarTMD(lower = args$c1[i], upper = args$c2[i], mu = medias[ic, j],
                                Sigma = params$params[j,"sigma"]^2,
-                               lambda = params$params[j,"lambda"], dist = 'SN')[c(1,2)]
+                               lambda = params$params[j,"lambda"], dist = "SN")[c(1,2)])
+          }}
         , which(phi1), 1:args$m
       )
       e01[!phi1] = y[!phi1]
@@ -219,15 +225,25 @@ etapaE.MoECenST = function(y, X, params, medias, args, ...){
       #     )
 
       moments = mapply(
-        function(ic, i)
-          MomTrunc::MCmeanvarTMD(
-            lower = args$c1[i],
-            upper = args$c2[i],
-            mu = medias[ic, j],
-            Sigma = as.matrix(params$params[j,"sigma"]^2),
-            lambda = as.matrix(params$params[j,"lambda"]),
-            nu = as.matrix(round(params$params[j,"nu"])+2),
-            dist = 'ST')[c(1,2)]
+        function(ic, i){
+          if(params$params[j,"lambda"] == 0){
+            return(MomTrunc::MCmeanvarTMD(
+              lower = args$c1[i],
+              upper = args$c2[i],
+              mu = medias[ic, j],
+              Sigma = as.matrix(params$params[j,"sigma"]^2),
+              nu = as.matrix(round(params$params[j,"nu"])+2),
+              dist = 't')[c(1,2)])
+          }else{
+            return(MomTrunc::MCmeanvarTMD(
+              lower = args$c1[i],
+              upper = args$c2[i],
+              mu = medias[ic, j],
+              Sigma = as.matrix(params$params[j,"sigma"]^2),
+              lambda = as.matrix(params$params[j,"lambda"]),
+              nu = as.matrix(round(params$params[j,"nu"])+2),
+              dist = 'ST')[c(1,2)])
+          }}
         , which(phi1), 1:args$m
       )
 

@@ -50,6 +50,7 @@ regEM = function(y, x, g = 2, ..., tol = 1E-6, family = "MixNormal",
   vero0 = vero(y, medias, paramsAtual, args)
 
   while(((crit > tol) & (it < max_iter)) | (it < min_iter)){
+
     # Etapa E
     U = etapaE(y, X, paramsAtual, medias, args)
 
@@ -59,11 +60,8 @@ regEM = function(y, x, g = 2, ..., tol = 1E-6, family = "MixNormal",
     # Estimando valores esperados
     medias = estimaMedia(X, paramsNovo$params, args)
 
-    paramsAtual = paramsNovo
-
     # Calculando critério
     veroAtual = vero(y, medias, paramsAtual, args)
-
 
     crit = abs((veroAtual-vero0)/(vero0))
 
@@ -77,7 +75,10 @@ regEM = function(y, x, g = 2, ..., tol = 1E-6, family = "MixNormal",
     it = it+1
   }
 
-  nPar = ncol(paramsAtual$params[,!colnames(paramsAtual$params) %in% c("delta", "gama")])
+  veroAtual = vero(y, medias, paramsAtual, args)
+
+  Par = c(paramsAtual$params[,!colnames(paramsAtual$params) %in% c("delta", "gama")])
+  nPar = length(Par[!is.na(Par)])-length(args$lambda)
   aic = -2*veroAtual + 2*nPar
   bic = -2*veroAtual + log(args$n)*nPar
 
@@ -89,8 +90,8 @@ regEM = function(y, x, g = 2, ..., tol = 1E-6, family = "MixNormal",
   }
   gruposEM = grupos_ordem
 
-  rownames(paramsNovo$params) = 1:nrow(paramsNovo$params)
-  if(showSE) se = estimaSe(y, X, paramsNovo, args = args, U = U) else se = NULL
+  rownames(paramsAtual$params) = 1:nrow(paramsAtual$params)
+  if(showSE) se = estimaSe(y, X, paramsAtual, args = args, U = U) else se = NULL
 
   resultados = list(
     Iteracoes = it,
@@ -98,10 +99,10 @@ regEM = function(y, x, g = 2, ..., tol = 1E-6, family = "MixNormal",
     l = veroAtual,
     AIC = aic,
     BIC = bic,
-    Parametros = t(paramsNovo$params),
+    Parametros = t(paramsAtual$params),
     U = U,
     se = se,
-    P = paramsNovo$P
+    P = paramsAtual$P
   )
   class(resultados) = c("resultadosEM", family)
   return(resultados)

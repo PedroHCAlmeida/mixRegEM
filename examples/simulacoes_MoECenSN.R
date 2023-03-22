@@ -4,7 +4,7 @@ library(sn)
 library(moments)
 library(mixsmsn)
 library(numDeriv)
-#library(mixRegEM)
+library(mixRegEM)
 
 matrizP2 <- function(alpha, R){
   P1 <- exp(R%*%t(alpha))/(1 + rowSums(exp(R%*%t(alpha))))
@@ -17,7 +17,7 @@ set.seed(123)
 n = c(100, 200, 500, 1000)
 nivelC = c(0, 0.075, 0.15, 0.3)
 g = 2
-tol = 1E-5
+tol = 1E-3
 
 beta01 <- c(0, -1, -2, -3)
 alpha01 <- c(0.7, 1, 2)
@@ -54,8 +54,11 @@ rMoeEM = function(ni, ci, tol = 1E-4, verbose = F){
   ki <- as.numeric(quantile(y, probs = ci))
   y[y <= ki] <- ki
   phi <- as.numeric(y == ki)
-  resultados =
-    regEM(
+  resultados = NULL
+  tent = 0
+  while(is.null(resultados) & tent < 3){
+    tent = tent+1
+    resultados = regEM(
       y,
       X[,-1],
       r = R[,-1],
@@ -68,6 +71,8 @@ rMoeEM = function(ni, ci, tol = 1E-4, verbose = F){
       verbose = verbose,
       tol = tol
     )$Parametros
+  }
+  return(resultados)
 }
 
 start = Sys.time()
@@ -77,7 +82,7 @@ resultadosMoECenSN = n |>
     function(ni){
       nivelC |>
         lapply(
-          function(ci) replicate(500, rMoeEM(ni, ci))
+          function(ci) replicate(500, rMoeEM(ni, ci, tol = tol))
         ) |>
         setNames(paste("Cen =", nivelC))
     }, .progress = "text"
@@ -94,6 +99,8 @@ c(
   beta02, sqrt(sigma2_02), lambda02, rep(NA, 3)
 )
 )
+
+rownames(parametros) = c(paste0("beta", 1:4), "sigma", "lambda", paste0("alpha", 1:3))
 
 inverte_col = function(df){
   df_inv = df
@@ -116,7 +123,6 @@ erros = n |>
               resultadosMoECenSN[paste("n =", ni), paste("Cen =", ci)][[1]],
               3,
               function(x){
-
                 res1 = x[startsWith(rownames(x), "beta"),1] - parametros[startsWith(rownames(parametros), "beta"),1]
                 res2 = x[startsWith(rownames(x), "beta"),1] - parametros[startsWith(rownames(parametros), "beta"),2]
 
@@ -125,9 +131,11 @@ erros = n |>
                 params = rownames(x)
                 x = x[!params %in% c("delta", "gama"),]
 
-                x = x - parametros
+                #x = x - parametros
 
                 x = data.frame(x)
+                x$parametros1 = parametros[,1]
+                x$parametros2 = parametros[,2]
                 x$n = ni
                 x$cen = ci
                 x$params = params[!params %in% c("delta", "gama")]
@@ -143,9 +151,10 @@ erros = n |>
   dplyr::as_tibble()
 
 errosMoECenSN = erros |>
-  tidyr::pivot_longer(paste0("X", 1:g), names_to = "grupo", values_to = "vies")
+  tidyr::pivot_longer(paste0("X", 1:g), names_to = "grupo", values_to = "valor") |>
+  dplyr::mutate(parametro_real = ifelse(grupo == "X1", parametros1, parametros2))
 
-save(errosMoECenSN, file = "errosMoECenSN.RData")
+save(errosMoECenSN, file = "erros_MoECenSN_esquerda_10-3.RData")
 
 
 

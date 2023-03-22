@@ -180,11 +180,16 @@ chuteInicial.MoECenSN = function(y, X, args){
 
   medias = estimaMedia(X, params, args)
 
-  lambda = sapply(
-    1:args$g,
-    function(j)
-      moments::skewness(y[grupos == j]-medias[grupos == j, j])
-  )
+  if(is.null(args$lambda)){
+    lambda = sapply(
+      1:args$g,
+      function(j)
+        moments::skewness(y[grupos == j]-medias[grupos == j, j])
+    )
+  }
+  else{
+    lambda = args$lambda
+  }
 
   params = cbind(
     params,
@@ -281,13 +286,18 @@ chuteInicial.MoECenST = function(y, X, args){
                                  dadosGrupos$X,
                                  SIMPLIFY = F))
 
-  medias = X %*% t(params[, startsWith(colnames(params), "beta")])
+  medias = estimaMedia(X, params, args)
 
-  lambda = sapply(
-    1:args$g,
-    function(j)
-      moments::skewness(y[grupos == j]-medias[grupos == j, j])
-  )
+  if(is.null(args$lambda)){
+    lambda = sapply(
+      1:args$g,
+      function(j)
+        moments::skewness(y[grupos == j]-medias[grupos == j, j])
+    )
+  }
+  else{
+    lambda = args$lambda
+  }
 
   params = cbind(
     params,
