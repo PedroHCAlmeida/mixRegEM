@@ -166,10 +166,18 @@ etapaM.MoECenSN = function(y, X, U, params, args){
              e11 = U$e11[,j],
              delta = params$params[j,startsWith(colnames(params$params), "delta")],
              P = params$P[,j],
-             alpha = params$params[j,startsWith(colnames(params$params), "alpha")]
+             alpha = params$params[j,startsWith(colnames(params$params), "alpha")],
+             lambda = args$lambda[j],
+             sigma = unname(params$params[j, "sigma"])
            )
     )
   )
+
+  if(any(is.nan(c(paramsNovo)))){
+    return(params)
+  } else{
+    paramsAtual = paramsNovo
+  }
 
   P = matrizP(t(paramsNovo)[startsWith(colnames(paramsNovo), "alpha"), 1:(args$g-1)], args$R)
 
@@ -195,12 +203,21 @@ etapaM.MoECenST = function(y, X, U, params, args){
              e11 = U$e11[,j],
              delta = params$params[j,startsWith(colnames(params$params), "delta")],
              P = params$P[,j],
-             alpha = params$params[j,startsWith(colnames(params$params), "alpha")]
+             alpha = params$params[j,startsWith(colnames(params$params), "alpha")],
+             lambda = args$lambda[j],
+             sigma = unname(params$params[j, "sigma"])
            )
     )
   )
 
-  medias = X %*% t(paramsNovo[, startsWith(colnames(paramsNovo), "beta")])
+
+  if(any(is.nan(c(paramsNovo)))){
+    return(params)
+  } else{
+    paramsAtual = paramsNovo
+  }
+
+  medias = estimaMedia(X, paramsNovo, args)
   Q = function(NU){
     sum(log(dMix.MoECenST(
       y = y,
