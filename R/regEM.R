@@ -15,7 +15,7 @@
 #' @return resultados finais
 #' @export
 regEM = function(y, x, g = 2, ..., tol = 1E-6, family = "MixNormal",
-                 grupoReal = NULL, max_iter = 1000, min_iter = 5, verbose = T, showSE = F){
+                 grupoReal = NULL, max_iter = 1000, min_iter = 1, verbose = T, showSE = F){
 
   args = list(...)
   args$n = length(y)
