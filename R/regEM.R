@@ -60,12 +60,14 @@ regEM = function(y, x, g = 2, ..., tol = 1E-6, family = "MixNormal",
     # Estimando valores esperados
     medias = estimaMedia(X, paramsNovo$params, args)
 
+    paramsAtual = paramsNovo
+
     # Calculando critério
     veroAtual = vero(y, medias, paramsAtual, args)
 
     crit = abs((veroAtual-vero0)/(vero0))
 
-    vero0_ant = vero0
+    #vero0_ant = vero0
     vero0 = veroAtual
 
     if(verbose){
