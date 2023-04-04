@@ -83,10 +83,12 @@ regEM = function(y, x, g = 2, ..., tol = 1E-6, family = "MixNormal",
   }
 
   conv = T
-  if((it == max_iter) && (it != min_iter) && verbose){
+  if((it == max_iter) && (it != min_iter)){
     print("Warning: O algortimo parou pelo máximo de itereções, e não convergiu")
-    conv = F
-  }
+    if(verbose){
+      conv = F
+    }
+    }
 
   veroAtual = vero(y, medias, paramsAtual, args)
 

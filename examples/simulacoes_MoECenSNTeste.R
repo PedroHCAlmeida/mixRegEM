@@ -14,15 +14,15 @@ matrizP2 <- function(alpha, R){
 
 set.seed(123)
 
-n = c(1000)
-nivelC = c(0)
+n = c(100, 200, 500, 1000)
+nivelC = c(0, 0.075, 0.15, 0.3)
 g = 2
 tol = 1E-3
 
 beta01 <- c(0, -1, -2, -3)
 alpha01 <- c(0.7, 1, 2)
 sigma2_01 <- 1
-lambda01 <- -1
+lambda01 <- -5
 
 beta02 <- c(-1, 1, 2, 3)
 sigma2_02 <- 2
@@ -71,7 +71,7 @@ rMoeEM = function(ni, ci, tol, verbose = F){
         showSE = F,
         verbose = verbose,
         tol = tol,
-        max_iter = 100000
+        max_iter = 10000
       )
     })
 
@@ -93,14 +93,14 @@ for(ni in n){
   start = Sys.time()
   resultadosNi = nivelC |>
         lapply(
-          function(ci) replicate(2, rMoeEM(ni, ci, tol = tol))
+          function(ci) replicate(100, rMoeEM(ni, ci, tol = tol))
         ) |>
         setNames(paste("Cen =", nivelC))
   resultadosMoECenSN[[paste("n =", ni)]] = resultadosNi
   sprintf("Pronto:", n)
   end = Sys.time()
   print(end-start)
-  save(resultadosMoECenSN, file = "resultadosMoECenSN_10_3.RData")
+  save(resultadosMoECenSN, file = "resultadosMoECenSN_.RData")
 }
 
 rownames(resultadosMoECenSN) = paste("n =", n)
