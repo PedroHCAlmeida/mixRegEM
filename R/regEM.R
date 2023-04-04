@@ -15,7 +15,7 @@
 #' @return resultados finais
 #' @export
 regEM = function(y, x, g = 2, ..., tol = 1E-6, family = "MixNormal",
-                 grupoReal = NULL, max_iter = 1000, min_iter = 1, verbose = T, showSE = F){
+                 grupoReal = NULL, max_iter = 1000, min_iter = 1, verbose = F, showSE = F){
 
   args = list(...)
   args$n = length(y)
@@ -46,7 +46,7 @@ regEM = function(y, x, g = 2, ..., tol = 1E-6, family = "MixNormal",
   medias = estimaMedia(X, paramsAtual$params, args)
   crit = 1
   it = 0
-  vero0_ant = 0
+  veroAnt = 0
   vero0 = vero(y, medias, paramsAtual, args)
 
   while(((crit > tol) & (it < max_iter)) | (it < min_iter)){
@@ -65,9 +65,14 @@ regEM = function(y, x, g = 2, ..., tol = 1E-6, family = "MixNormal",
     # Calculando critério
     veroAtual = vero(y, medias, paramsAtual, args)
 
-    crit = abs((veroAtual-vero0)/(vero0))
+    #crit = abs((veroAtual-vero0)/(vero0))
 
-    #vero0_ant = vero0
+    # Aitken Acceleration
+    ck = (veroAtual-vero0)/(vero0-veroAnt)
+    veroInf = vero0+(veroAtual-vero0)/(1-ck)
+    crit = abs(veroAtual-veroInf)
+
+    veroAnt = vero0
     vero0 = veroAtual
 
     if(verbose){
@@ -75,6 +80,12 @@ regEM = function(y, x, g = 2, ..., tol = 1E-6, family = "MixNormal",
       cat('Loglikelihood =', veroAtual, '\n')
     }
     it = it+1
+  }
+
+  conv = T
+  if((it == max_iter) && (it != min_iter)){
+    print("Warning: O algortimo parou pelo máximo de itereções, e não convergiu")
+    conv = F
   }
 
   veroAtual = vero(y, medias, paramsAtual, args)
@@ -97,6 +108,7 @@ regEM = function(y, x, g = 2, ..., tol = 1E-6, family = "MixNormal",
 
   resultados = list(
     Iteracoes = it,
+    Convergiu = conv,
     g = g,
     l = veroAtual,
     AIC = aic,

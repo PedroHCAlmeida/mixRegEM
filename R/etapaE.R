@@ -91,6 +91,8 @@ etapaE.MoECenSN = function(y, X, params, medias, args, ...){
 
   phi1 = (args$phi == 1)
 
+  medias = estimaMedia(X, params$params, args)
+
   U_list = sapply(
     1:args$g,
     function(j){
@@ -101,9 +103,11 @@ etapaE.MoECenSN = function(y, X, params, medias, args, ...){
       Z[!phi1] = params$P[!phi1, j]*sn::dsn(y[!phi1], medias[!phi1, j], params$params[j,"sigma"], params$params[j,"lambda"])
       Z[phi1] = params$P[phi1, j]*R0
 
-      Mu = (params$params[j,"delta"]/(params$params[j,"delta"]**2+params$params[j,"gama"]))*(y-medias[,j])
+
       M2T = params$params[j,"gama"]/(params$params[j,"delta"]**2+params$params[j,"gama"])
       MT = sqrt(M2T)
+      Mu = M2T*params$params[j,"delta"]*(y-medias[,j])/params$params[j,"gama"]
+
       # moments = sapply(
       #       which(phi1),
       #       function(i) MomTrunc::meanvarTMD(lower = args$c1[i], upper = args$c2[i], mu = medias[i, j],
@@ -135,7 +139,8 @@ etapaE.MoECenSN = function(y, X, params, medias, args, ...){
         , which(phi1), 1:args$m
       )
 
-      aij = params$params[j,"lambda"]*(y[!phi1] - medias[!phi1,j])/params$params[j,"sigma"]
+      #aij = params$params[j,"lambda"]*(y[!phi1] - medias[!phi1,j])/params$params[j,"sigma"]
+      aij = Mu[!phi1]/MT
       p = pnorm(aij)
       p = ifelse(p == 0, .Machine$double.xmin, p)
       tau_gama[!phi1] = (dnorm(aij))/p
@@ -150,7 +155,7 @@ etapaE.MoECenSN = function(y, X, params, medias, args, ...){
       e20[phi1] = (M2T*params$params[j,"delta"]/params$params[j,"gama"])**2*(e02[phi1] - 2*medias[phi1,j]*e01[phi1] + medias[phi1,j]**2) +
             (MT**3*params$params[j,"delta"]/params$params[j,"gama"]*(w0[phi1]-medias[phi1,j])*tau_gama[phi1]) + M2T
 
-      e11[!phi1] = e01[!phi1]*(Mu[!phi1] + MT*tau_gama[!phi1])
+      e11[!phi1] = e01[!phi1]*e10[!phi1]
       e11[phi1] = (M2T*params$params[j,"delta"]/params$params[j,"gama"])*(e02[phi1] - medias[phi1,j]*e01[phi1]) +
                   (MT*w0[phi1]*tau_gama[phi1])
 
@@ -300,9 +305,6 @@ etapaE.MoECenST = function(y, X, params, medias, args, ...){
       e11[!phi1] = e10[!phi1]*y[!phi1]
       e11[phi1] = MuAux*(e02[phi1]-e01[phi1]*medias[phi1,j])+
         MT*cv*(R0_F0)*w0[phi1]
-
-
-
       return(list(Z, e00, e01, e02, e10, e20, e11))
       })
 

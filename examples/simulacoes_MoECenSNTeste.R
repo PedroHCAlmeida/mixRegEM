@@ -14,8 +14,8 @@ matrizP2 <- function(alpha, R){
 
 set.seed(123)
 
-n = c(100, 200, 500, 1000)
-nivelC = c(0, 0.075, 0.15, 0.3)
+n = c(1000)
+nivelC = c(0)
 g = 2
 tol = 1E-3
 
@@ -93,7 +93,7 @@ for(ni in n){
   start = Sys.time()
   resultadosNi = nivelC |>
         lapply(
-          function(ci) replicate(100, rMoeEM(ni, ci, tol = tol))
+          function(ci) replicate(2, rMoeEM(ni, ci, tol = tol))
         ) |>
         setNames(paste("Cen =", nivelC))
   resultadosMoECenSN[[paste("n =", ni)]] = resultadosNi

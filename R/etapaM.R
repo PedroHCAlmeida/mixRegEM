@@ -48,7 +48,6 @@ etapaM.MoEKernelNormal = function(y, X, U, params, ...){
   kj = do.call(cbind, kjList)
   kj_std = t(sapply(1:n,
                     function(i) kj[i,]/sum(kj[i,])))
-  print(table(apply(kj_std, 1, which.max)))
 
   return(list(params = paramsNovo, P = kj_std))
 }
@@ -219,15 +218,17 @@ etapaM.MoECenST = function(y, X, U, params, args){
 
   medias = estimaMedia(X, paramsNovo, args)
   Q = function(NU){
-    sum(log(dMix.MoECenST(
+    ll = sum(log(dMix.MoECenST(
       y = y,
       medias = medias,
       sigma = paramsNovo[,"sigma"],
       lambda = paramsNovo[,"lambda"],
       nu = NU,
-      P = params$P,
+      P = P,
       args = args
-      )))
+    )))
+    if(!is.finite(ll)) -.Machine$double.xmax
+    else ll
   }
 
   if(is.null(args$nuFixo)){

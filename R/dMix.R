@@ -48,7 +48,7 @@ dMix.MoECenSN = function(y, medias, beta, sigma, lambda, P, args){
   return(sapply(1:args$g,
          function(j){
            total = numeric(args$n)
-           total[!phi1] = P[!phi1,j]*sn::dsn(y[!phi1], medias[!phi1,j], sigma[j], lambda[j])
+           total[!phi1] = P[!phi1,j]*sn::dsn(y[!phi1], medias[!phi1,j], omega = sigma[j], alpha = lambda[j])
            total[phi1] = P[phi1,j]*(sn::psn(args$c2,  medias[phi1,j], sigma[j], lambda[j])-sn::psn(args$c1, medias[phi1,j], sigma[j],  lambda[j]))
            total
            }) |>
