@@ -46,10 +46,13 @@ regEM = function(y, x, g = 2, ..., tol = 1E-6, family = "MixNormal",
   medias = estimaMedia(X, paramsAtual$params, args)
   crit = 1
   it = 0
-  veroAnt = 0
-  vero0 = vero(y, medias, paramsAtual, args)
+  ll = c(0,0,0)
+  ll[3] = vero(y, medias, paramsAtual, args)
+  ll[2] = ll[3]
 
   while(((crit > tol) & (it < max_iter)) | (it < min_iter)){
+
+    ll = c(ll[-1], 0)
 
     # Etapa E
     U = etapaE(y, X, paramsAtual, medias, args)
@@ -63,21 +66,19 @@ regEM = function(y, x, g = 2, ..., tol = 1E-6, family = "MixNormal",
     paramsAtual = paramsNovo
 
     # Calculando critério
-    veroAtual = vero(y, medias, paramsAtual, args)
-
+    ll[3] = vero(y, medias, paramsAtual, args)
     #crit = abs((veroAtual-vero0)/(vero0))
 
     # Aitken Acceleration
-    ck = (veroAtual-vero0)/(vero0-veroAnt)
-    veroInf = vero0+(veroAtual-vero0)/(1-ck)
-    crit = abs(veroAtual-veroInf)
+    ck = (ll[3] - ll[2])/(ll[2] - ll[1])
+    denom = max(1L - ck, .Machine$double.eps)
+    llInf = ll[2]+(ll[3]-ll[2])/denom
+    crit = abs(llInf - ll[3])
 
-    veroAnt = vero0
-    vero0 = veroAtual
 
     if(verbose){
       print(paramsNovo$params)
-      cat('Loglikelihood =', veroAtual, '\n')
+      cat('Loglikelihood =', ll[3], " Critério:", crit, '\n')
     }
     it = it+1
   }
@@ -90,12 +91,12 @@ regEM = function(y, x, g = 2, ..., tol = 1E-6, family = "MixNormal",
     conv = F
     }
 
-  veroAtual = vero(y, medias, paramsAtual, args)
+  ll[3] = vero(y, medias, paramsAtual, args)
 
   Par = c(paramsAtual$params[,!colnames(paramsAtual$params) %in% c("delta", "gama")])
   nPar = length(Par[!is.na(Par)])-length(args$lambda)
-  aic = -2*veroAtual + 2*nPar
-  bic = -2*veroAtual + log(args$n)*nPar
+  aic = -2*ll[3] + 2*nPar
+  bic = -2*ll[3] + log(args$n)*nPar
 
   gruposEM = apply(U$Z, 1, which.max)
   r = rank(-table(gruposEM))
@@ -112,7 +113,7 @@ regEM = function(y, x, g = 2, ..., tol = 1E-6, family = "MixNormal",
     Iteracoes = it,
     Convergiu = conv,
     g = g,
-    l = veroAtual,
+    l = ll[3],
     AIC = aic,
     BIC = bic,
     Parametros = t(paramsAtual$params),
