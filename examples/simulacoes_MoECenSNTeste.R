@@ -71,7 +71,7 @@ rMoeEM = function(ni, ci, tol, verbose = F){
         showSE = F,
         verbose = verbose,
         tol = tol,
-        max_iter = 10000
+        max_iter = 100000
       )
     })
 
@@ -79,7 +79,7 @@ rMoeEM = function(ni, ci, tol, verbose = F){
       convergiu = F
     }
     else{
-      convergiu = resultados$convergiu
+      convergiu = resultados$Convergiu
     }
   }
   return(resultados$Parametros)
@@ -93,14 +93,14 @@ for(ni in n){
   start = Sys.time()
   resultadosNi = nivelC |>
         lapply(
-          function(ci) replicate(100, rMoeEM(ni, ci, tol = tol))
+          function(ci) replicate(100, rMoeEM(ni, ci, tol = 1E-2))
         ) |>
         setNames(paste("Cen =", nivelC))
   resultadosMoECenSN[[paste("n =", ni)]] = resultadosNi
   sprintf("Pronto:", n)
   end = Sys.time()
   print(end-start)
-  save(resultadosMoECenSN, file = "resultadosMoECenSN_.RData")
+  save(resultadosMoECenSN, file = "resultadosMoECenSN_10_2.RData")
 }
 
 rownames(resultadosMoECenSN) = paste("n =", n)

@@ -224,7 +224,7 @@ etapaM.MoECenST = function(y, X, U, params, args){
       sigma = paramsNovo[,"sigma"],
       lambda = paramsNovo[,"lambda"],
       nu = NU,
-      P = P,
+      P = params$P,
       args = args
     )))
     if(!is.finite(ll)) -.Machine$double.xmax

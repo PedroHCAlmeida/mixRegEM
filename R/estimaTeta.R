@@ -82,6 +82,8 @@ estimaTeta.MoECenSN = function(y, X, R, Z, e01, e02, e10, e20, e11, delta, alpha
     }
   }
 
+  delta = sum(Z*(e11-e10*medias))/sum(Z*e20)
+
   gama = sum(Z*(e02-2*e01*medias+medias**2+(delta**2)*e20-2*delta*e11+2*delta*e10*medias))/sum(Z)
 
   if(gama <= 0){
