@@ -28,20 +28,27 @@ estimaSe.MixNormal = function(y, X, params, args, weights = 1, ...){
 }
 .S3method("estimaSe", "MixNormal", estimaSe.MixNormal)
 
-estimaSe.MoENormal = function(y, X, params, args, weights = 1, ...){
+estimaSe.MoENormal = function(y, X, params, args, U, weights = 1, ...){
   lapply(1:args$g,
-         function(j) estimaSe.Normal(X, params$params[j,],
+         function(j) estimaSe.Normal(y, X, params$params[j,],
                                      args = args, weights = U$Z[,j])
   )
 }
 .S3method("estimaSe", "MoENormal", estimaSe.MoENormal)
 
-estimaSe.MixT = function(y, X, params, args, weights = 1, ...){
+estimaSe.MixT = function(y, X, params, args, U, weights = 1, ...){
   lapply(1:args$g,
-         function(j) estimaSe.Normal(X, params$params[j,], args = args, weights = U$Z[,j]*U$K[,j])
+         function(j) estimaSe.Normal(y, X, params$params[j,], args = args, weights = U$Z[,j]*U$K[,j])
   )
 }
 .S3method("estimaSe", "MixT", estimaSe.MixT)
+
+estimaSe.MoET = function(y, X, params, args, U, weights = 1, ...){
+  lapply(1:args$g,
+         function(j) estimaSe.Normal(y, X, params$params[j,], args = args, weights = U$Z[,j]*U$K[,j])
+  )
+}
+.S3method("estimaSe", "MoET", estimaSe.MoET)
 
 estimaSe.MoECenSN = function(y, X, params, args, weights = 1, ...){
 

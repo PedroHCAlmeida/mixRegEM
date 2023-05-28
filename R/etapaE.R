@@ -128,10 +128,16 @@ etapaE.MoECenSN = function(y, X, params, medias, args, ...){
           }}
         , which(phi1), 1:args$m
       )
+
+      if(length(moments) == 0) moments = rbind(0, 0)
+
+
       e01[!phi1] = y[!phi1]
-      e01[phi1] = unlist(moments[1,])
+      try({
+        e01[phi1] = unlist(moments[1,])
+        e02[phi1] = unlist(moments[2,])
+      })
       e02[!phi1] = y[!phi1]**2
-      e02[phi1] = unlist(moments[2,])
 
       w0[phi1] = mapply(
         function(ic, i) MomTrunc::meanvarTMD(lower = args$c1[i], upper = args$c2[i], mu = medias[ic, j],
@@ -145,19 +151,25 @@ etapaE.MoECenSN = function(y, X, params, medias, args, ...){
       p = ifelse(p == 0, .Machine$double.xmin, p)
       tau_gama[!phi1] = (dnorm(aij))/p
 
-      P0 = pnorm(args$c2, medias[phi1,j], sqrt(params$params[j,"gama"]))-pnorm(args$c1, medias[phi1,j], sqrt(params$params[j,"gama"]))
-      tau_gama[phi1] = P0/(sqrt(pi*(1 + params$params[j,"lambda"]^2)/2)*R0)
+      try({
+        P0 = pnorm(args$c2, medias[phi1,j], sqrt(params$params[j,"gama"]))-pnorm(args$c1, medias[phi1,j], sqrt(params$params[j,"gama"]))
+        tau_gama[phi1] = P0/(sqrt(pi*(1 + params$params[j,"lambda"]^2)/2)*R0)
+      })
 
       e10[!phi1] = (Mu[!phi1] + MT*tau_gama[!phi1])
-      e10[phi1] = ((M2T*params$params[j,"delta"]/params$params[j,"gama"])*(e01[phi1] - medias[phi1,j]))+MT*tau_gama[phi1]
-
+      try({
+        e10[phi1] = ((M2T*params$params[j,"delta"]/params$params[j,"gama"])*(e01[phi1] - medias[phi1,j]))+MT*tau_gama[phi1]
+      })
       e20[!phi1] = Mu[!phi1]**2 + M2T + Mu[!phi1]*MT*tau_gama[!phi1]
-      e20[phi1] = (M2T*params$params[j,"delta"]/params$params[j,"gama"])**2*(e02[phi1] - 2*medias[phi1,j]*e01[phi1] + medias[phi1,j]**2) +
-            (MT**3*params$params[j,"delta"]/params$params[j,"gama"]*(w0[phi1]-medias[phi1,j])*tau_gama[phi1]) + M2T
-
+      try({
+        e20[phi1] = (M2T*params$params[j,"delta"]/params$params[j,"gama"])**2*(e02[phi1] - 2*medias[phi1,j]*e01[phi1] + medias[phi1,j]**2) +
+              (MT**3*params$params[j,"delta"]/params$params[j,"gama"]*(w0[phi1]-medias[phi1,j])*tau_gama[phi1]) + M2T
+      })
       e11[!phi1] = e01[!phi1]*e10[!phi1]
-      e11[phi1] = (M2T*params$params[j,"delta"]/params$params[j,"gama"])*(e02[phi1] - medias[phi1,j]*e01[phi1]) +
-                  (MT*w0[phi1]*tau_gama[phi1])
+      try({
+        e11[phi1] = (M2T*params$params[j,"delta"]/params$params[j,"gama"])*(e02[phi1] - medias[phi1,j]*e01[phi1]) +
+                    (MT*w0[phi1]*tau_gama[phi1])
+      })
 
       return(list(Z, e01, e02, e10, e20, e11))
       })

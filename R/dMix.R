@@ -23,9 +23,9 @@ dMix.MixT = function(y, medias, beta, sigma, nu, P){
 }
 .S3method("dMix", "MixT", dMix.MixT)
 
-dMix.MoET = function(y, X, beta, sigma, nu, P){
+dMix.MoET = function(y, medias, beta, sigma, nu, P){
   total = lapply(1:nrow(beta),
-                 function(j) P[,j]*sn::dst(y, X%*%beta[j,], sigma[j], nu = nu[j]))
+                 function(j) P[,j]*sn::dst(y, medias[j,], sigma[j], nu = nu[j]))
   return(rowSums(do.call(cbind, total)))
 }
 .S3method("dMix", "MoET", dMix.MoET)

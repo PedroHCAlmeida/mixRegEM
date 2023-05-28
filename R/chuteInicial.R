@@ -107,7 +107,7 @@ chuteInicial.MoET = function(y, X, args, initGrupo = "KMeans"){
                                  dadosGrupos$X,
                                  SIMPLIFY = F))
 
-  params = as.matrix(cbind(params, "nu" = rep(5, args$g)))
+  params = as.matrix(cbind(params, "nu" = rep(30, args$g)))
 
   P = matrix(rep(c(prop.table(table(grupos))), args$n), byrow = T, ncol = args$g)
   alpha = matrix(c(rep(0, (args$g-1)*k), rep(NA, k)),

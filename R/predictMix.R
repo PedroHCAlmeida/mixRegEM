@@ -17,6 +17,8 @@ predictMix = function(reg, x = NULL, r = NULL, class = T){
 #' @export
 predictMix.MoENormal = function(reg, x, r, class = T){
 
+  reg$Parametros = t(reg$Parametros)
+
   args = list()
   args$n = nrow(x)
   args$g = reg$g
@@ -25,10 +27,10 @@ predictMix.MoENormal = function(reg, x, r, class = T){
 
   X = MoENormal(X)
 
-  alpha = reg$params$params[,startsWith(colnames(reg$params$params), "alpha")]
+  alpha = reg$Parametros[,startsWith(colnames(reg$Parametros), "alpha")]
 
-  P = matrizP(matrix(alpha[-nrow(alpha),], nrow=3, byrow = T), R)
-  medias = estimaMedia(X, reg$params$params, args)
+  P = matrizP(matrix(t(alpha[-nrow(alpha),]), nrow = ncol(R), byrow = T), R)
+  medias = estimaMedia(X, reg$Parametros, args)
 
   if(!class) y = apply(P*medias, 1, sum)
   else{
@@ -43,6 +45,8 @@ predictMix.MoENormal = function(reg, x, r, class = T){
 #' @export
 predictMix.MoET = function(reg, x, r, class = T){
 
+  reg$Parametros = t(reg$Parametros)
+
   args = list()
   args$n = nrow(x)
   args$g = reg$g
@@ -51,10 +55,10 @@ predictMix.MoET = function(reg, x, r, class = T){
 
   X = MoENormal(X)
 
-  alpha = reg$params$params[,startsWith(colnames(reg$params$params), "alpha")]
+  alpha = reg$Parametros[,startsWith(colnames(reg$Parametros), "alpha")]
 
-  P = matrizP(matrix(alpha[-nrow(alpha),], nrow=3, byrow = T), R)
-  medias = estimaMedia(X, reg$params$params, args)
+  P = matrizP(matrix(t(alpha[-nrow(alpha),]), nrow = ncol(R), byrow = T), R)
+  medias = estimaMedia(X, reg$Parametros, args)
 
   if(!class) y = apply(P*medias, 1, sum)
   else{
@@ -65,3 +69,30 @@ predictMix.MoET = function(reg, x, r, class = T){
   return(y)
 }
 .S3method("predictMix", "MoET", predictMix.MoET)
+
+predictMix.MoECenST = function(reg, x, r, class = T){
+
+  reg$Parametros = t(reg$Parametros)
+
+  args = list()
+  args$n = nrow(x)
+  args$g = reg$g
+  X = cbind(rep(1, nrow(x)), x)
+  R = cbind(rep(1, nrow(r)), r)
+
+  X = MoECenST(X)
+
+  alpha = reg$Parametros[,startsWith(colnames(reg$Parametros), "alpha")]
+
+  P = matrizP(matrix(alpha[-nrow(alpha),], nrow=ncol(R), byrow = T), R)
+  medias = estimaMedia(X, reg$Parametros, args)
+
+  if(!class) y = apply(P*medias, 1, sum)
+  else{
+    grupos = apply(P, 1, which.max)
+    y = sapply(1:args$n,
+               function(i) medias[i, grupos[i]])
+  }
+  return(y)
+}
+.S3method("predictMix", "MoECenST", predictMix.MoECenST)

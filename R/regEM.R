@@ -81,6 +81,8 @@ regEM = function(y, x, g = 2, ..., tol = 1E-6, family = "MixNormal",
       cat('Loglikelihood =', ll[3], " Critério:", crit, '\n')
     }
     it = it+1
+
+    if(!is.finite(crit)) crit = .Machine$double.xmax
   }
 
   conv = T

@@ -109,7 +109,7 @@ etapaM.MoET = function(y, X, U, params, args){
   nu = optim(params$params[,"nu"],
              fn = Q,
              method = "L-BFGS-B",
-             lower = 0.001,
+             lower = 1,
              upper = 30,
              control = list(fnscale = -1)
   )$par
