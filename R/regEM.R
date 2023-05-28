@@ -74,8 +74,9 @@ regEM = function(y, x, g = 2, ..., tol = 1E-6, family = "MixNormal",
     denom = max(1L - ck, .Machine$double.eps)
     llInf = ll[2]+(ll[3]-ll[2])/denom
 
-    if(ll[1] == ll[2] == ll[3]) crit = 0
-
+    if((ll[1] == ll[2]) & (ll[2] == ll[3])){
+      crit = 0
+      }
     crit = abs(llInf - ll[3])
 
     if(verbose){
