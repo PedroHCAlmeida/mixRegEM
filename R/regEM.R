@@ -73,12 +73,14 @@ regEM = function(y, x, g = 2, ..., tol = 1E-6, family = "MixNormal",
     ck = (ll[3] - ll[2])/(ll[2] - ll[1])
     denom = max(1L - ck, .Machine$double.eps)
     llInf = ll[2]+(ll[3]-ll[2])/denom
-    crit = abs(llInf - ll[3])
 
+    if(ll[1] == ll[2] == ll[3]) crit = 0
+
+    crit = abs(llInf - ll[3])
 
     if(verbose){
       print(paramsNovo$params)
-      cat('Loglikelihood =', ll[3], " Critério:", crit, '\n')
+      cat('Loglikelihood =', ll[3], ' Critério:', crit, '\n')
     }
     it = it+1
 

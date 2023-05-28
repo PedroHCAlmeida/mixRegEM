@@ -108,13 +108,6 @@ etapaE.MoECenSN = function(y, X, params, medias, args, ...){
       MT = sqrt(M2T)
       Mu = M2T*params$params[j,"delta"]*(y-medias[,j])/params$params[j,"gama"]
 
-      # moments = sapply(
-      #       which(phi1),
-      #       function(i) MomTrunc::meanvarTMD(lower = args$c1[i], upper = args$c2[i], mu = medias[i, j],
-      #                                    Sigma = params$params[j,"sigma"]^2,
-      #                                    lambda = params$params[j,"lambda"], dist = 'SN')[c(1,2)]
-      #     )
-
       moments = mapply(
         function(ic, i){
           if(params$params[j,"lambda"] == 0){
@@ -228,19 +221,6 @@ etapaE.MoECenST = function(y, X, params, medias, args, ...){
       e00[!phi1] = e00Aux/ifelse(pU == 0, .Machine$double.xmin, pU)
       e00[phi1] = P0/ifelse(F0 == 0, .Machine$double.xmin, F0)
 
-      # moments = sapply(
-      #       which(phi1),
-      #       function(i)
-      #         MomTrunc::MCmeanvarTMD(
-      #           lower = args$c1[i],
-      #           upper = args$c2[i],
-      #           mu = medias[i, j],
-      #           Sigma = as.matrix(params$params[j,"sigma"]^2),
-      #           lambda = as.matrix(params$params[j,"lambda"]),
-      #           nu = as.matrix(round(params$params[j,"nu"])+2),
-      #           dist = 'ST')[c(1,2)]
-      #     )
-
       moments = mapply(
         function(ic, i){
           if(params$params[j,"lambda"] == 0){
@@ -266,20 +246,6 @@ etapaE.MoECenST = function(y, X, params, medias, args, ...){
 
       if(length(moments) == 0) moments = rbind(0, 0)
 
-      # moments = sapply(
-      #   which(phi1),
-      #   function(i)
-      #     MomTrunc::meanvarTMD(
-      #       lower = args$c1,
-      #       upper = args$c2,
-      #       mu = medias[i, j],
-      #       Sigma = params$params[j,"sigma"]^2,
-      #       lambda = params$params[j,"lambda"],
-      #       nu = round(params$params[j,"nu"])+2,
-      #       dist = 'ST')[c(1,2)]
-      # )
-
-
       e01[!phi1] = e00[!phi1]*y[!phi1]
       e01[phi1] = e00[phi1]*unlist(moments[1,])
 
@@ -291,12 +257,6 @@ etapaE.MoECenST = function(y, X, params, medias, args, ...){
                                              Sigma = as.matrix(sigma__**2), nu = as.matrix(round(params$params[j,"nu"])+1), dist = 't')$mean
             , which(phi1), 1:args$m
           )
-
-      # w0[phi1] = sapply(
-      #   which(phi1),
-      #   function(i) MomTrunc::meanvarTMD(lower = args$c1, upper = args$c2, mu = medias[i, j],
-      #                                    Sigma = sigma__**2, nu = round(params$params[j,"nu"]+1), dist = 't')$mean
-      # )
 
       if(sum(phi1) == 0) w0 = 0
 
