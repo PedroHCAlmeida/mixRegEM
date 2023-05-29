@@ -89,7 +89,7 @@ etapaE.MixSN = function(y, X, params, medias, args, ...){
 
 etapaE.MoECenSN = function(y, X, params, medias, args, ...){
 
-  phi1 = (args$phi == 1)
+  phi1 = (args$phi[,1] == 1)
 
   medias = estimaMedia(X, params$params, args)
 
@@ -177,7 +177,7 @@ etapaE.MoECenSN = function(y, X, params, medias, args, ...){
 
 etapaE.MoECenST = function(y, X, params, medias, args, ...){
 
-  phi1 = (args$phi == 1)
+  phi1 = (args$phi[,1] == 1)
 
   U_list = sapply(
     1:args$g,

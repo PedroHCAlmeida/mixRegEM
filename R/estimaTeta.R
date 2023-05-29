@@ -9,45 +9,48 @@ estimaTeta.Normal = function(y, X){
 
   sigma = sqrt(sum((y - (X%*%beta))^2)/(length(y) - ncol(X)))
 
-  c(beta = beta, sigma = sigma)
+  c(beta = as.matrix(beta), sigma = sigma)
 }
 .S3method("estimaTeta", "Normal", estimaTeta.Normal)
 
 estimaTeta.MixNormal = function(y, X, Z){
 
-  beta = solve(t(X)%*%diag(Z)%*%X)%*%(t(X)%*%(Z*y))
+  X = Matrix::Matrix(X, sparse = T)
+  beta = solve(Matrix::t(X)%*%Matrix::Diagonal(x = Z)%*%X)%*%(Matrix::t(X)%*%(Z*y))
   sigma = sqrt(sum(Z*(y - (X%*%beta))^2)/sum(Z))
 
-  c(beta = beta, sigma = sigma)
+  c(beta = as.matrix(beta), sigma = sigma)
 }
 .S3method("estimaTeta", "MixNormal", estimaTeta.MixNormal)
 
 estimaTeta.MoENormal = function(y, X, Z, R, alpha, P){
 
-  beta = solve(t(X)%*%diag(Z)%*%X)%*%(t(X)%*%(Z*y))
+  X = Matrix::Matrix(X, sparse = T)
+  beta = solve(Matrix::t(X)%*%Matrix::Diagonal(x = Z)%*%X)%*%(Matrix::t(X)%*%(Z*y))
   sigma = sqrt(sum(Z*(y - (X%*%beta))^2)/sum(Z))
-  alphaNovo = alpha + 4*solve(t(R)%*%R)%*%(t(R)%*%(Z - P))
+  alphaNovo = alpha + 4*solve(t(as.matrix(R))%*%as.matrix(R))%*%(t(as.matrix(R))%*%(Z - P))
 
-  list(params = c(beta = beta, sigma = sigma, alpha = alphaNovo))
+  list(params = c(beta = as.matrix(beta), sigma = sigma, alpha = alphaNovo))
 }
 .S3method("estimaTeta", "MoENormal", estimaTeta.MoENormal)
 
 estimaTeta.MixT = function(y, X, Z, K){
 
-  beta = solve(t(X)%*%diag(Z*K)%*%X)%*%(t(X)%*%(Z*K*y))
+  beta = solve(t(X)%*%Matrix::Diagonal(x = Z*K)%*%X)%*%(t(X)%*%(Z*K*y))
   sigma = sqrt(sum(Z*K*((y - (X%*%beta))^2))/sum(Z))
 
-  c(beta = beta, sigma = sigma)
+  c(beta = as.matrix(beta), sigma = sigma)
 }
 .S3method("estimaTeta", "MixT", estimaTeta.MixT)
 
 estimaTeta.MoET = function(y, X, Z, K, R, alpha, P){
 
-  beta = solve(t(X)%*%diag(Z*K)%*%X)%*%(t(X)%*%(Z*K*y))
+  X = Matrix::Matrix(X, sparse = T)
+  beta = solve(Matrix::t(X)%*%Matrix::Diagonal(x = Z*K)%*%X)%*%(Matrix::t(X)%*%(Z*K*y))
   sigma = sqrt(sum(Z*K*((y - (X%*%beta))^2))/sum(Z))
-  alphaNovo = alpha + 4*solve(t(R)%*%R)%*%(t(R)%*%(Z - P))
+  alphaNovo = alpha + 4*solve(t(as.matrix(R))%*%as.matrix(R))%*%(t(as.matrix(R))%*%(Z - P))
 
-  c(beta = beta, sigma = sigma, alpha = alphaNovo)
+  c(beta = as.matrix(beta), sigma = sigma, alpha = alphaNovo)
 }
 .S3method("estimaTeta", "MoET", estimaTeta.MoET)
 
@@ -55,7 +58,8 @@ estimaTeta.MixSN = function(y, X, medias, Z, t1, t2, deltaAtual){
 
   b = -sqrt(2/pi)
 
-  beta = solve(t(X)%*%diag(Z)%*%X)%*%(t(X)%*%(Z*(y-(deltaAtual*t1))))
+  X = Matrix::Matrix(X, sparse = T)
+  beta = solve(Matrix::t(X)%*%Matrix::Diagonal(x = Z)%*%X)%*%(Matrix::t(X)%*%(Z*(y-(deltaAtual*t1))))
   res = (y-X%*%beta)
   delta = sum(t1*res)/sum(t2)
   gama = sum(Z*(res**2)- (2*delta*res*t1) + (delta**2)*t2)/sum(Z)
@@ -63,14 +67,15 @@ estimaTeta.MixSN = function(y, X, medias, Z, t1, t2, deltaAtual){
   lambda = delta/sqrt(gama)
   sigma =sqrt(delta**2 + gama)
 
-  c(beta = beta, delta = delta, gama = gama, sigma = sigma, lambda = lambda, sigma)
+  c(beta = as.matrix(beta), delta = delta, gama = gama, sigma = sigma, lambda = lambda, sigma)
 }
 .S3method("estimaTeta", "MixSN", estimaTeta.MixSN)
 
 
 estimaTeta.MoECenSN = function(y, X, R, Z, e01, e02, e10, e20, e11, delta, alpha, P, lambda, sigma){
 
-  beta = solve(t(X)%*%diag(Z)%*%X)%*%(t(X)%*%(Z*(e01-e10*delta)))
+  X = Matrix::Matrix(X, sparse = T)
+  beta = solve(Matrix::t(X)%*%Matrix::Diagonal(x = Z)%*%X)%*%(Matrix::t(X)%*%(Z*(e01-e10*delta)))
   medias = X%*%beta
 
   if(is.null(lambda)){
@@ -93,15 +98,16 @@ estimaTeta.MoECenSN = function(y, X, R, Z, e01, e02, e10, e20, e11, delta, alpha
   lambda = delta/sqrt(gama)
 
   sigma = sqrt(delta**2 + gama)
-  alphaNovo = alpha + 4*solve(t(R)%*%R)%*%(t(R)%*%(Z - P))
+  alphaNovo = alpha + 4*solve(t(as.matrix(R))%*%as.matrix(R))%*%(t(as.matrix(R))%*%(Z - P))
 
-  c(beta = beta, delta = delta, gama = gama, sigma = sigma, lambda = lambda, alpha = alphaNovo)
+  c(beta = as.matrix(beta), delta = delta, gama = gama, sigma = sigma, lambda = lambda, alpha = alphaNovo)
 }
 .S3method("estimaTeta", "MoECenSN", estimaTeta.MoECenSN)
 
 estimaTeta.MoECenST = function(y, X, R, Z, e00, e01, e02, e10, e20, e11, delta, alpha, P, lambda, sigma){
 
-  beta = solve(t(X)%*%diag(Z*e00)%*%X)%*%(t(X)%*%(Z*(e01-e10*delta)))
+  X = Matrix::Matrix(X, sparse = T)
+  beta = solve(Matrix::t(X)%*%Matrix::Diagonal(x = Z*e00)%*%X)%*%(Matrix::t(X)%*%(Z*(e01-e10*delta)))
   medias = X%*%beta
 
   if(is.null(lambda)){
@@ -117,9 +123,9 @@ estimaTeta.MoECenST = function(y, X, R, Z, e00, e01, e02, e10, e20, e11, delta, 
   lambda = delta/sqrt(gama)
   sigma = sqrt(delta**2 + gama)
 
-  alphaNovo = alpha + 4*solve(t(R)%*%R)%*%(t(R)%*%(Z - P))
+  alphaNovo = alpha + 4*solve(t(as.matrix(R))%*%as.matrix(R))%*%(t(as.matrix(R))%*%(Z - P))
 
-  c(beta = beta, delta = delta, gama = gama, sigma = sigma, lambda = lambda, alpha = alphaNovo)
+  c(beta = as.matrix(beta), delta = delta, gama = gama, sigma = sigma, lambda = lambda, alpha = alphaNovo)
 }
 .S3method("estimaTeta", "MoECenST", estimaTeta.MoECenST)
 

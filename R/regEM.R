@@ -24,10 +24,16 @@ regEM = function(y, x, g = 2, ..., tol = 1E-6, family = "MixNormal",
   args$tol = tol
 
   X = cbind(rep(1, args$n), x)
+  gc(x, verbose = F)
   args$p = ncol(X)
 
   try({
-    args$R = cbind(rep(1, args$n), args$r)
+    args$R = Matrix::Matrix(cbind(rep(1, args$n), args$r), sparse = T)
+    if(identical(args$R, X)){
+      pointr::ptr("R", "X")
+      args$R = R
+    }
+    gc(args$r, verbose = F)
     args$k = ncol(args$R)
   })
 
@@ -35,9 +41,12 @@ regEM = function(y, x, g = 2, ..., tol = 1E-6, family = "MixNormal",
     args$m = sum(args$phi == 1)
     if(length(args$c1) != args$m){
       args$c1 = rep(args$c1, args$m)
+    }
+    if(length(args$c2) != args$m){
       args$c2 = rep(args$c2, args$m)
     }
-    })
+    args$phi = Matrix::Matrix(args$phi, sparse = T)
+  })
 
   y = eval(parse(text = family))(y)
   X = eval(parse(text = family))(X)
@@ -76,8 +85,9 @@ regEM = function(y, x, g = 2, ..., tol = 1E-6, family = "MixNormal",
 
     if((ll[1] == ll[2]) & (ll[2] == ll[3])){
       crit = 0
-      }
-    crit = abs(llInf - ll[3])
+    } else{
+      crit = abs(llInf - ll[3])
+    }
 
     if(verbose){
       print(paramsNovo$params)

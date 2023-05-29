@@ -44,7 +44,7 @@ dMix.MixSN = function(y, medias, beta, sigma, lambda, delta, P){
 
 dMix.MoECenSN = function(y, medias, beta, sigma, lambda, P, args){
 
-  phi1 = (args$phi == 1)
+  phi1 = (args$phi[,1] == 1)
   return(sapply(1:args$g,
          function(j){
            total = numeric(args$n)
@@ -58,7 +58,7 @@ dMix.MoECenSN = function(y, medias, beta, sigma, lambda, P, args){
 
 dMix.MoECenST = function(y, medias, beta, sigma, lambda, nu, P, args){
 
-  phi1 = (args$phi == 1)
+  phi1 = (args$phi[,1] == 1)
   return(sapply(1:args$g,
                 function(j){
                   total = numeric(args$n)
