@@ -1,4 +1,4 @@
-setClassUnion("Y",   c("numeric",   "matrix", "array"))
+setClassUnion("Y",   c("numeric", "matrix", "array"))
 
 setClass("Normal",
          representation(Y = "Y"))

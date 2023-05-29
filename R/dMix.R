@@ -1,36 +1,36 @@
-dMix = function(Y, medias, params, ...){
+dMix = function(f, y, medias, params, ...){
   UseMethod("dMix")
 }
 
-dMix.MixNormal = function(y, medias, beta, sigma, P){
+dMix.MixNormal = function(f, y, medias, beta, sigma, P){
   total = lapply(1:nrow(beta),
                  function(j) P[j]*dnorm(y, medias[,j], sigma[j]))
   return(rowSums(do.call(cbind, total)))
 }
 .S3method("dMix", "MixNormal", dMix.MixNormal)
 
-dMix.MoENormal = function(y, medias, beta, sigma, P){
+dMix.MoENormal = function(f, y, medias, beta, sigma, P){
   total = lapply(1:nrow(beta),
                  function(j) P[,j]*dnorm(y, medias[,j], sigma[j]))
   return(rowSums(do.call(cbind, total)))
 }
 .S3method("dMix", "MoENormal", dMix.MoENormal)
 
-dMix.MixT = function(y, medias, beta, sigma, nu, P){
+dMix.MixT = function(f, y, medias, beta, sigma, nu, P){
   total = lapply(1:nrow(beta),
                  function(j) P[j]*sn::dst(y, medias[,j], sigma[j], nu = nu[j]))
   return(rowSums(do.call(cbind, total)))
 }
 .S3method("dMix", "MixT", dMix.MixT)
 
-dMix.MoET = function(y, medias, beta, sigma, nu, P){
+dMix.MoET = function(f, y, medias, beta, sigma, nu, P){
   total = lapply(1:nrow(beta),
                  function(j) P[,j]*sn::dst(y, medias[j,], sigma[j], nu = nu[j]))
   return(rowSums(do.call(cbind, total)))
 }
 .S3method("dMix", "MoET", dMix.MoET)
 
-dMix.MixSN = function(y, medias, beta, sigma, lambda, delta, P){
+dMix.MixSN = function(f, y, medias, beta, sigma, lambda, delta, P){
 
   b = -sqrt(2/pi)
 
@@ -42,9 +42,8 @@ dMix.MixSN = function(y, medias, beta, sigma, lambda, delta, P){
 }
 .S3method("dMix", "MixSN", dMix.MixSN)
 
-dMix.MoECenSN = function(y, medias, beta, sigma, lambda, P, args){
-
-  phi1 = (args$phi == 1)
+dMix.MoECenSN = function(f, y, medias, beta, sigma, lambda, P, args){
+  phi1 = (args$phi[,1] == 1)
   return(sapply(1:args$g,
          function(j){
            total = numeric(args$n)
@@ -56,9 +55,9 @@ dMix.MoECenSN = function(y, medias, beta, sigma, lambda, P, args){
 }
 .S3method("dMix", "MoECenSN", dMix.MoECenSN)
 
-dMix.MoECenST = function(y, medias, beta, sigma, lambda, nu, P, args){
+dMix.MoECenST = function(f, y, medias, beta, sigma, lambda, nu, P, args){
 
-  phi1 = (args$phi == 1)
+  phi1 = (args$phi[,1] == 1)
   return(sapply(1:args$g,
                 function(j){
                   total = numeric(args$n)

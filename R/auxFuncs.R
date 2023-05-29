@@ -3,10 +3,12 @@ matrizP <- function(alpha, R){
   if(any(is.na(alpha))){
     P = as.matrix(rep(1, nrow(R)))
   } else{
-    P1 <- exp(R%*%alpha)/(1 + rowSums(exp(R%*%alpha)))
+
+    exp_R_alpha = as.matrix(exp(R%*%alpha))
+    P1 <- exp_R_alpha/(1 + rowSums(exp_R_alpha))
     P <- cbind(P1, 1 - rowSums(P1))
   }
-  return(P)
+  return(Matrix::Matrix(P, sparse = T))
 }
 
 calculaMetricas = function(y, medias){

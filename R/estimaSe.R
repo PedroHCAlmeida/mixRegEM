@@ -1,8 +1,8 @@
-estimaSe = function(y, X, params, args, weights = 1, ...){
+estimaSe = function(f, y, X, params, args, weights = 1, ...){
   UseMethod("estimaSe")
 }
 
-estimaSe.Normal = function(y, X, params, args, weights = 1, ...){
+estimaSe.Normal = function(f, y, X, params, args, weights = 1, ...){
 
   beta = params[startsWith(names(params), "beta")]
   sigma = params["sigma"]
@@ -21,14 +21,14 @@ estimaSe.Normal = function(y, X, params, args, weights = 1, ...){
 }
 .S3method("estimaSe", "Normal", estimaSe.Normal)
 
-estimaSe.MixNormal = function(y, X, params, args, weights = 1, ...){
+estimaSe.MixNormal = function(f, y, X, params, args, weights = 1, ...){
   lapply(1:args$g,
          function(j) estimaSe.Normal(X, params$params[j,], args = args, weights = U$Z[,j])
   )
 }
 .S3method("estimaSe", "MixNormal", estimaSe.MixNormal)
 
-estimaSe.MoENormal = function(y, X, params, args, U, weights = 1, ...){
+estimaSe.MoENormal = function(f, y, X, params, args, U, weights = 1, ...){
   lapply(1:args$g,
          function(j) estimaSe.Normal(y, X, params$params[j,],
                                      args = args, weights = U$Z[,j])
@@ -36,23 +36,23 @@ estimaSe.MoENormal = function(y, X, params, args, U, weights = 1, ...){
 }
 .S3method("estimaSe", "MoENormal", estimaSe.MoENormal)
 
-estimaSe.MixT = function(y, X, params, args, U, weights = 1, ...){
+estimaSe.MixT = function(f, y, X, params, args, U, weights = 1, ...){
   lapply(1:args$g,
          function(j) estimaSe.Normal(y, X, params$params[j,], args = args, weights = U$Z[,j]*U$K[,j])
   )
 }
 .S3method("estimaSe", "MixT", estimaSe.MixT)
 
-estimaSe.MoET = function(y, X, params, args, U, weights = 1, ...){
+estimaSe.MoET = function(f, y, X, params, args, U, weights = 1, ...){
   lapply(1:args$g,
          function(j) estimaSe.Normal(y, X, params$params[j,], args = args, weights = U$Z[,j]*U$K[,j])
   )
 }
 .S3method("estimaSe", "MoET", estimaSe.MoET)
 
-estimaSe.MoECenSN = function(y, X, params, args, weights = 1, ...){
+estimaSe.MoECenSN = function(f, y, X, params, args, weights = 1, ...){
 
-  dMoeSEUnc = function(yi, Xi, beta, sigma, lambda, nu, P, args){
+  dMoeSEUnc = function(f, yi, Xi, beta, sigma, lambda, nu, P, args){
     sum(sapply(1:args$g, function(j) P[j]*sn::dsn(yi, Xi%*%beta[j,], sigma[j], lambda[j])))
   }
   dMoeSECen = function(Xi, beta, sigma, lambda, nu, P, args){
@@ -100,9 +100,9 @@ estimaSe.MoECenSN = function(y, X, params, args, weights = 1, ...){
 }
 .S3method("estimaSe", "MoECenSN", estimaSe.MoECenSN)
 
-estimaSe.MoECenST = function(y, X, params, args, weights = 1, ...){
+estimaSe.MoECenST = function(f, y, X, params, args, weights = 1, ...){
 
-  dMoeSEUnc = function(yi, Xi, beta, sigma, lambda, nu, P, args){
+  dMoeSEUnc = function(f, yi, Xi, beta, sigma, lambda, nu, P, args){
    sum(sapply(1:args$g, function(j) P[j]*sn::dst(yi, Xi%*%beta[j,], sigma[j], lambda[j], nu[j])))
   }
   dMoeSECen = function(Xi, beta, sigma, lambda, nu, P, args){

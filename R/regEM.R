@@ -23,11 +23,17 @@ regEM = function(y, x, g = 2, ..., tol = 1E-6, family = "MixNormal",
   args$verbose = verbose
   args$tol = tol
 
-  X = cbind(rep(1, args$n), x)
+  X = Matrix::Matrix(cbind(rep(1, args$n), x), sparse = T)
+  suppressMessages(gc(x))
   args$p = ncol(X)
 
   try({
-    args$R = cbind(rep(1, args$n), args$r)
+    args$R = Matrix::Matrix(cbind(rep(1, args$n), args$r), sparse = T)
+    if(identical(args$R, X)){
+      pointr::ptr("R", "X")
+      args$R = R
+    }
+    suppressMessages(gc(args$r))
     args$k = ncol(args$R)
   })
 
@@ -35,19 +41,22 @@ regEM = function(y, x, g = 2, ..., tol = 1E-6, family = "MixNormal",
     args$m = sum(args$phi == 1)
     if(length(args$c1) != args$m){
       args$c1 = rep(args$c1, args$m)
+    }
+    if(length(args$c2) != args$m){
       args$c2 = rep(args$c2, args$m)
     }
+    args$phi = Matrix::Matrix(args$phi, sparse = T)
     })
 
-  y = eval(parse(text = family))(y)
-  X = eval(parse(text = family))(X)
+  f = eval(parse(text = family))(1)
 
-  paramsAtual = chuteInicial(y, X, args)
-  medias = estimaMedia(X, paramsAtual$params, args)
+  paramsAtual = chuteInicial(f, y, X, args)
+
+  medias = estimaMedia(f, X, paramsAtual$params, args)
   crit = 1
   it = 0
   ll = c(0,0,0)
-  ll[3] = vero(y, medias, paramsAtual, args)
+  ll[3] = vero(f, y, medias, paramsAtual, args)
   ll[2] = ll[3]
 
   while(((crit > tol) & (it < max_iter)) | (it < min_iter)){
@@ -55,18 +64,18 @@ regEM = function(y, x, g = 2, ..., tol = 1E-6, family = "MixNormal",
     ll = c(ll[-1], 0)
 
     # Etapa E
-    U = etapaE(y, X, paramsAtual, medias, args)
+    U = suppressMessages(etapaE(f, y, X, paramsAtual, medias, args))
 
     # Etapa M
-    paramsNovo = etapaM(y, X, U, paramsAtual, args)
+    paramsNovo = etapaM(f, y, X, U, paramsAtual, args)
 
     # Estimando valores esperados
-    medias = estimaMedia(X, paramsNovo$params, args)
+    medias = estimaMedia(f, X, paramsNovo$params, args)
 
     paramsAtual = paramsNovo
 
     # Calculando critério
-    ll[3] = vero(y, medias, paramsAtual, args)
+    ll[3] = vero(f, y, medias, paramsAtual, args)
     #crit = abs((veroAtual-vero0)/(vero0))
 
     # Aitken Acceleration
@@ -76,9 +85,9 @@ regEM = function(y, x, g = 2, ..., tol = 1E-6, family = "MixNormal",
 
     if((ll[1] == ll[2]) & (ll[2] == ll[3])){
       crit = 0
-      }
-    crit = abs(llInf - ll[3])
-
+      } else{
+      crit = abs(llInf - ll[3])
+    }
     if(verbose){
       print(paramsNovo$params)
       cat('Loglikelihood =', ll[3], ' Critério:', crit, '\n')
@@ -96,7 +105,7 @@ regEM = function(y, x, g = 2, ..., tol = 1E-6, family = "MixNormal",
     conv = F
     }
 
-  ll[3] = vero(y, medias, paramsAtual, args)
+  ll[3] = vero(f, y, medias, paramsAtual, args)
 
   Par = c(paramsAtual$params[,!colnames(paramsAtual$params) %in% c("delta", "gama")])
   nPar = length(Par[!is.na(Par)])-length(args$lambda)
@@ -112,7 +121,7 @@ regEM = function(y, x, g = 2, ..., tol = 1E-6, family = "MixNormal",
   gruposEM = grupos_ordem
 
   rownames(paramsAtual$params) = 1:nrow(paramsAtual$params)
-  if(showSE) se = estimaSe(y, X, paramsAtual, args = args, U = U) else se = NULL
+  if(showSE) se = estimaSe(f, y, X, paramsAtual, args = args, U = U) else se = NULL
 
   resultados = list(
     Iteracoes = it,

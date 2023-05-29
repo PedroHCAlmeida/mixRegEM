@@ -1,23 +1,24 @@
-vero = function(y, medias, params, args, ...){
+vero = function(f, y, medias, params, args, ...){
   UseMethod("vero")
 }
 
-vero.MixNormal = function(y, medias, params, args){
-  sum(log(dMix.MixNormal(y, medias,
+vero.MixNormal = function(f, y, medias, params, args){
+  sum(log(dMix.MixNormal(f, y, medias,
                          params$params[, startsWith(colnames(params$params), "beta")],
                          params$params[,"sigma"], params$P)))
 }
 .S3method("vero", "MixNormal", vero.MixNormal)
 
-vero.MoENormal = function(y, medias, params, args){
-  sum(log(dMix(y, medias,
+vero.MoENormal = function(f, y, medias, params, args){
+  sum(log(dMix(f, y, medias,
                params$params[, startsWith(colnames(params$params), "beta")],
                params$params[,"sigma"], params$P)))
 }
 .S3method("vero", "MoENormal", vero.MoENormal)
 
-vero.MixT = function(y, medias, params, args){
+vero.MixT = function(f, y, medias, params, args){
   sum(log(dMix(
+    f = f,
     y = y,
     medias = medias,
     beta = params$params[, startsWith(colnames(params$params), "beta")],
@@ -28,8 +29,9 @@ vero.MixT = function(y, medias, params, args){
 }
 .S3method("vero", "MixT", vero.MixT)
 
-vero.MoET = function(y, medias, params, args){
+vero.MoET = function(f, y, medias, params, args){
   sum(log(dMix(
+    f = f,
     y = y,
     medias = medias,
     beta = params$params[, startsWith(colnames(params$params), "beta")],
@@ -40,8 +42,9 @@ vero.MoET = function(y, medias, params, args){
 }
 .S3method("vero", "MoET", vero.MoET)
 
-vero.MixSN = function(y, X, params, args){
+vero.MixSN = function(f, y, X, params, args){
   sum(log(dMix.MixSN(
+    f = f,
     y = y,
     medias = medias,
     beta = params$params[, startsWith(colnames(params$params), "beta")],
@@ -52,8 +55,9 @@ vero.MixSN = function(y, X, params, args){
 }
 .S3method("vero", "MixSN", vero.MixSN)
 
-vero.MoECenSN = function(y, medias, params, args){
+vero.MoECenSN = function(f, y, medias, params, args){
   sum(log(dMix.MoECenSN(
+    f = f,
     y = y,
     medias = medias,
     beta = params$params[, startsWith(colnames(params$params), "beta")],
@@ -65,8 +69,9 @@ vero.MoECenSN = function(y, medias, params, args){
 }
 .S3method("vero", "MoECenSN", vero.MoECenSN)
 
-vero.MoECenST = function(y, medias, params, args){
+vero.MoECenST = function(f, y, medias, params, args){
   sum(log(dMix.MoECenST(
+    f = f,
     y = y,
     medias = medias,
     beta = params$params[, startsWith(colnames(params$params), "beta")],

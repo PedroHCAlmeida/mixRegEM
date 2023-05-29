@@ -1,8 +1,8 @@
-etapaM = function(y, X, U, params, args, ...){
+etapaM = function(f, y, X, U, params, args, ...){
   UseMethod("etapaM")
 }
 
-etapaM.MixNormal = function(y, X, U, params, args){
+etapaM.MixNormal = function(f, y, X, U, params, args){
 
   paramsNovo = do.call(
     rbind,
@@ -16,7 +16,7 @@ etapaM.MixNormal = function(y, X, U, params, args){
 }
 .S3method("etapaM", "MixNormal", etapaM.MixNormal)
 
-etapaM.MoENormal = function(y, X, U, params, args){
+etapaM.MoENormal = function(f, y, X, U, params, args){
 
   paramsNovo = do.call(
     rbind,
@@ -31,7 +31,7 @@ etapaM.MoENormal = function(y, X, U, params, args){
 }
 .S3method("etapaM", "MoENormal", etapaM.MoENormal)
 
-etapaM.MoEKernelNormal = function(y, X, U, params, ...){
+etapaM.MoEKernelNormal = function(f, y, X, U, params, ...){
 
   paramsNovo = do.call(
     rbind,
@@ -53,7 +53,7 @@ etapaM.MoEKernelNormal = function(y, X, U, params, ...){
 }
 .S3method("etapaM", "MoEKernelNormal", etapaM.MoEKernelNormal)
 
-etapaM.MixT = function(y, X, U, params, args){
+etapaM.MixT = function(f, y, X, U, params, args){
 
   paramsNovo = do.call(
     rbind,
@@ -83,7 +83,7 @@ etapaM.MixT = function(y, X, U, params, args){
 }
 .S3method("etapaM", "MixT", etapaM.MixT)
 
-etapaM.MoET = function(y, X, U, params, args){
+etapaM.MoET = function(f, y, X, U, params, args){
 
   paramsNovo = do.call(
     rbind,
@@ -122,7 +122,7 @@ etapaM.MoET = function(y, X, U, params, args){
 }
 .S3method("etapaM", "MoET", etapaM.MoET)
 
-etapaM.MixSN = function(y, X, U, params, args){
+etapaM.MixSN = function(f, y, X, U, params, args){
 
   medias = estimaMedia.MixSN(X, params$params, args)
 
@@ -148,9 +148,9 @@ etapaM.MixSN = function(y, X, U, params, args){
 }
 .S3method("etapaM", "MixSN", etapaM.MixSN)
 
-etapaM.MoECenSN = function(y, X, U, params, args){
+etapaM.MoECenSN = function(f, y, X, U, params, args){
 
-  paramsNovo = do.call(
+  paramsNovo = as.matrix(do.call(
     rbind,
     lapply(1:args$g,
            function(j) estimaTeta.MoECenSN(
@@ -170,7 +170,7 @@ etapaM.MoECenSN = function(y, X, U, params, args){
              sigma = unname(params$params[j, "sigma"])
            )
     )
-  )
+  ))
 
   if(any(is.nan(c(paramsNovo)))){
     return(params)
@@ -184,12 +184,13 @@ etapaM.MoECenSN = function(y, X, U, params, args){
 }
 .S3method("etapaM", "MoECenSN", etapaM.MoECenSN)
 
-etapaM.MoECenST = function(y, X, U, params, args){
+etapaM.MoECenST = function(f, y, X, U, params, args){
 
   paramsNovo = do.call(
     rbind,
     lapply(1:args$g,
            function(j) estimaTeta.MoECenST(
+             f,
              y = y,
              X = X,
              R = args$R,
@@ -216,7 +217,7 @@ etapaM.MoECenST = function(y, X, U, params, args){
     paramsAtual = paramsNovo
   }
 
-  medias = estimaMedia(X, paramsNovo, args)
+  medias = estimaMedia(f, X, paramsNovo, args)
   Q = function(NU){
     ll = sum(log(dMix.MoECenST(
       y = y,
