@@ -35,12 +35,46 @@ dMix.MixSN = function(y, medias, beta, sigma, lambda, delta, P){
   b = -sqrt(2/pi)
 
   total = lapply(1:nrow(beta),
-                 function(j) P[j]*sn::dsn(y, medias[,j]+b*delta[j],
+                 function(j) P[j]*sn::dsn(y, medias[,j],
                                           omega = sigma[j],
                                           alpha = lambda[j]))
   return(rowSums(do.call(cbind, total)))
 }
 .S3method("dMix", "MixSN", dMix.MixSN)
+
+dMix.MoESN = function(y, medias, beta, sigma, lambda, P, args){
+  return(sapply(1:args$g,
+                function(j){
+                  P[,j]*sn::dsn(y, medias[,j], omega = sigma[j], alpha = lambda[j])
+
+                }) |>
+           rowSums())
+}
+.S3method("dMix", "MoESN", dMix.MoESN)
+
+dMix.MoEST = function(y, medias, beta, sigma, lambda, nu, P, args){
+  return(sapply(1:args$g,
+                function(j){
+                  sn::dst(x = y, xi = medias[, j], omega = sigma[j], alpha = lambda[j], nu = nu[j])
+
+                }) |>
+           rowSums())
+}
+.S3method("dMix", "MoEST", dMix.MoEST)
+
+dMix.MixCenSN = function(y, medias, beta, sigma, lambda, P, args){
+
+  phi1 = (args$phi[,1] == 1)
+  return(sapply(1:args$g,
+                function(j){
+                  total = numeric(args$n)
+                  total[!phi1] = P[j]*sn::dsn(y[!phi1], medias[!phi1,j], omega = sigma[j], alpha = lambda[j])
+                  total[phi1] = P[j]*(sn::psn(args$c2,  medias[phi1,j], sigma[j], lambda[j])-sn::psn(args$c1, medias[phi1,j], sigma[j],  lambda[j]))
+                  total
+                }) |>
+           rowSums())
+}
+.S3method("dMix", "MixCenSN", dMix.MixCenSN)
 
 dMix.MoECenSN = function(y, medias, beta, sigma, lambda, P, args){
 
@@ -55,6 +89,20 @@ dMix.MoECenSN = function(y, medias, beta, sigma, lambda, P, args){
     rowSums())
 }
 .S3method("dMix", "MoECenSN", dMix.MoECenSN)
+
+dMix.MixCenST = function(y, medias, beta, sigma, lambda, nu, P, args){
+
+  phi1 = (args$phi[,1] == 1)
+  return(sapply(1:args$g,
+                function(j){
+                  total = numeric(args$n)
+                  total[!phi1] = P[j]*sn::dst(x = y[!phi1], xi = medias[!phi1, j], omega = sigma[j], alpha = lambda[j], nu = nu[j])
+                  total[phi1] = P[j]*(sn::pst(args$c2,  medias[phi1,j], sigma[j], lambda[j], nu[j])-sn::pst(args$c1, medias[phi1,j], sigma[j],  lambda[j], nu[j]))
+                  total
+                }) |>
+           rowSums())
+}
+.S3method("dMix", "MixCenST", dMix.MixCenST)
 
 dMix.MoECenST = function(y, medias, beta, sigma, lambda, nu, P, args){
 

@@ -109,7 +109,7 @@ etapaM.MoET = function(y, X, U, params, args){
   nu = optim(params$params[,"nu"],
              fn = Q,
              method = "L-BFGS-B",
-             lower = 1,
+             lower = 0.1,
              upper = 30,
              control = list(fnscale = -1)
   )$par
@@ -121,6 +121,82 @@ etapaM.MoET = function(y, X, U, params, args){
   return(list(params = paramsNovo, P = P))
 }
 .S3method("etapaM", "MoET", etapaM.MoET)
+
+etapaM.MoEST = function(y, X, U, params, args){
+
+  paramsNovo = do.call(
+    rbind,
+    lapply(1:args$g,
+           function(j) estimaTeta.MoECenST(
+             y = y,
+             X = X,
+             R = args$R,
+             Z = U$Z[,j],
+             e00 = U$e00[,j],
+             e01 = U$e01[,j],
+             e02 = U$e02[,j],
+             e10 = U$e10[,j],
+             e20 = U$e20[,j],
+             e11 = U$e11[,j],
+             delta = params$params[j,startsWith(colnames(params$params), "delta")],
+             P = params$P[,j],
+             alpha = params$params[j,startsWith(colnames(params$params), "alpha")],
+             lambda = args$lambda[j],
+             sigma = unname(params$params[j, "sigma"])
+           )
+    )
+  )
+
+
+  if(any(is.nan(c(paramsNovo)))){
+    return(params)
+  } else{
+    paramsAtual = paramsNovo
+  }
+
+  medias = estimaMedia(X, paramsNovo, args)
+  Q = function(NU){
+    if(length(NU) == 1) NU = rep(NU, args$g)
+
+    ll = sum(log(dMix.MoEST(
+      y = y,
+      medias = medias,
+      sigma = paramsNovo[,"sigma"],
+      lambda = paramsNovo[,"lambda"],
+      nu = NU,
+      P = params$P,
+      args = args
+    )))
+    if(!is.finite(ll)) -.Machine$double.xmax
+    else ll
+  }
+
+  if(is.null(args$nuFixo)){
+    if(is.null(args$nuIgual) || (args$nuIgual != T)){
+      nu = optim(params$params[,"nu"],
+                 fn = Q,
+                 method = "L-BFGS-B",
+                 lower = 0.1,
+                 upper = 30,
+                 control = list(fnscale = -1)
+      )$par
+    }else{
+      nu = optimize(
+        Q,
+        c(0.1, 30),
+        maximum = T
+      )$maximum
+      nu = rep(nu, args$g)
+    }
+  }
+  else nu = params$params[,"nu"]
+
+  paramsNovo = as.matrix(cbind(paramsNovo, "nu" = as.numeric(nu)))
+  P = matrizP(t(paramsNovo)[startsWith(colnames(paramsNovo), "alpha"), 1:(args$g-1)], args$R)
+
+  return(list(params = paramsNovo, P = P))
+}
+.S3method("etapaM", "MoEST", etapaM.MoEST)
 
 etapaM.MixSN = function(y, X, U, params, args){
 
@@ -147,6 +223,39 @@ etapaM.MixSN = function(y, X, U, params, args){
   return(list(params = paramsNovo, P = P))
 }
 .S3method("etapaM", "MixSN", etapaM.MixSN)
+
+etapaM.MixCenSN = function(y, X, U, params, args){
+  paramsNovo = do.call(
+    rbind,
+    lapply(1:args$g,
+           function(j) estimaTeta.MixCenSN(
+             y = y,
+             X = X,
+             Z = U$Z[,j],
+             e01 = U$e01[,j],
+             e02 = U$e02[,j],
+             e10 = U$e10[,j],
+             e20 = U$e20[,j],
+             e11 = U$e11[,j],
+             delta = params$params[j,startsWith(colnames(params$params), "delta")],
+             P = params$P[j],
+             lambda = args$lambda[j],
+             sigma = unname(params$params[j, "sigma"])
+           )
+    )
+  )
+
+  if(any(is.nan(c(paramsNovo)))){
+    return(params)
+  } else{
+    paramsAtual = paramsNovo
+  }
+
+  P = colMeans(U$Z)
+
+  return(list(params = paramsNovo, P = P))
+}
+.S3method("etapaM", "MixCenSN", etapaM.MixCenSN)
 
 etapaM.MoECenSN = function(y, X, U, params, args){
 
@@ -184,6 +293,80 @@ etapaM.MoECenSN = function(y, X, U, params, args){
 }
 .S3method("etapaM", "MoECenSN", etapaM.MoECenSN)
 
+etapaM.MixCenST = function(y, X, U, params, args){
+
+  paramsNovo = do.call(
+    rbind,
+    lapply(1:args$g,
+           function(j) estimaTeta.MixCenST(
+             y = y,
+             X = X,
+             Z = U$Z[,j],
+             e00 = U$e00[,j],
+             e01 = U$e01[,j],
+             e02 = U$e02[,j],
+             e10 = U$e10[,j],
+             e20 = U$e20[,j],
+             e11 = U$e11[,j],
+             delta = params$params[j,startsWith(colnames(params$params), "delta")],
+             P = params$P[j],
+             lambda = args$lambda[j],
+             sigma = unname(params$params[j, "sigma"])
+           )
+    )
+  )
+
+
+  if(any(is.nan(c(paramsNovo)))){
+    return(params)
+  } else{
+    paramsAtual = paramsNovo
+  }
+
+  medias = estimaMedia(X, paramsNovo, args)
+  Q = function(NU){
+    if(length(NU) == 1) NU = rep(NU, args$g)
+
+    ll = sum(log(dMix.MixCenST(
+      y = y,
+      medias = medias,
+      sigma = paramsNovo[,"sigma"],
+      lambda = paramsNovo[,"lambda"],
+      nu = NU,
+      P = params$P,
+      args = args
+    )))
+    if(!is.finite(ll)) -.Machine$double.xmax
+    else ll
+  }
+
+  if(is.null(args$nuFixo)){
+    if(is.null(args$nuIgual) || (args$nuIgual != T)){
+      nu = optim(params$params[,"nu"],
+                 fn = Q,
+                 method = "L-BFGS-B",
+                 lower = 0.1,
+                 upper = 30,
+                 control = list(fnscale = -1)
+      )$par
+    }else{
+      nu = optimize(
+        Q,
+        c(0.1, 30),
+        maximum = T
+      )$maximum
+      nu = rep(nu, args$g)
+    }
+  }
+  else nu = params$params[,"nu"]
+
+  paramsNovo = as.matrix(cbind(paramsNovo, "nu" = as.numeric(nu)))
+  P = colMeans(U$Z)
+
+  return(list(params = paramsNovo, P = P))
+}
+.S3method("etapaM", "MixCenST", etapaM.MixCenST)
+
 etapaM.MoECenST = function(y, X, U, params, args){
 
   paramsNovo = do.call(
@@ -218,6 +401,8 @@ etapaM.MoECenST = function(y, X, U, params, args){
 
   medias = estimaMedia(X, paramsNovo, args)
   Q = function(NU){
+    if(length(NU) == 1) NU = rep(NU, args$g)
+
     ll = sum(log(dMix.MoECenST(
       y = y,
       medias = medias,
@@ -232,13 +417,22 @@ etapaM.MoECenST = function(y, X, U, params, args){
   }
 
   if(is.null(args$nuFixo)){
-    nu = optim(params$params[,"nu"],
-               fn = Q,
-               method = "L-BFGS-B",
-               lower = 1,
-               upper = 20,
-               control = list(fnscale = -1)
-    )$par
+    if(is.null(args$nuIgual) || (args$nuIgual != T)){
+      nu = optim(params$params[,"nu"],
+                 fn = Q,
+                 method = "L-BFGS-B",
+                 lower = 0.1,
+                 upper = 30,
+                 control = list(fnscale = -1)
+      )$par
+    }else{
+      nu = optimize(
+        Q,
+        c(0.1, 30),
+        maximum = T
+      )$maximum
+      nu = rep(nu, args$g)
+    }
   }
   else nu = params$params[,"nu"]
 

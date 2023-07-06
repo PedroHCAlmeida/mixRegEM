@@ -54,6 +54,38 @@ MixSN = function(x){
   return(x)
 }
 
+setClass("MoESN",
+         representation(Y = "Y"))
+
+MoESN = function(x){
+  class(x) = c("MoESN", "MoECenSN", "MixSN", "MixNormal", class(x))
+  return(x)
+}
+
+setClass("MixST",
+         representation(Y = "Y"))
+
+MoEST = function(x){
+  class(x) = c("MixST", "MixCenST", "MixT", class(x))
+  return(x)
+}
+
+setClass("MoEST",
+         representation(Y = "Y"))
+
+MoEST = function(x){
+  class(x) = c("MoEST", "MoECenST", "MoET", class(x))
+  return(x)
+}
+
+setClass("MixCenSN",
+         representation(Y = "Y"))
+
+MixCenSN = function(x){
+  class(x) = c("MixCenSN", "MixSN", "MixNormal", class(x))
+  return(x)
+}
+
 setClass("MoECenSN",
          representation(Y = "Y"))
 
@@ -62,7 +94,15 @@ MoECenSN = function(x){
   return(x)
 }
 
-setClass("MoECenST",
+setClass("MixCenST",
+         representation(Y = "Y"))
+
+MixCenST = function(x){
+  class(x) = c("MixCenST", "MixST", "MixT", class(x))
+  return(x)
+}
+
+setClass("MixCenST",
          representation(Y = "Y"))
 
 MoECenST = function(x){

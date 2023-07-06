@@ -17,24 +17,45 @@
 regEM = function(y, x, g = 2, ..., tol = 1E-6, family = "MixNormal",
                  grupoReal = NULL, max_iter = 1000, min_iter = 1, verbose = F, showSE = F){
 
+  if(length(g) > 1 | length(family) > 1)
+    return(
+      do.call(
+        function(...) search(y, x, ..., g = g, tol = tol, family = family,
+                             grupoReal = grupoReal, max_iter = max_iter,
+                             min_iter = min_iter, verbose, showSE = showSE), list(...))
+  )
+
   args = list(...)
+
+  if(family %in% c("MixCenNormal", "MixCenT", "MoECenNormal", "MoECenT")){
+    args$lambda = rep(0, g)
+    family = switch(
+      family,
+      "MixCenNormal" = "MixCenSN",
+      "MixCenT"= "MixCenST",
+      "MoECenNormal" = "MoECenSN",
+      "MoECenT" = "MoECenST"
+    )
+  }
   args$n = length(y)
   args$g = g
   args$verbose = verbose
   args$tol = tol
+  if(!is.null(args$lambda) & length(args$lambda) == 1) args$lambda = rep(args$lambda, g)
 
   X = cbind(rep(1, args$n), x)
   gc(x, verbose = F)
   args$p = ncol(X)
 
   try({
+
     args$R = Matrix::Matrix(cbind(rep(1, args$n), args$r), sparse = T)
-    if(identical(args$R, X)){
+    if(identical(args$R, X) | is.null(args$r)){
       pointr::ptr("R", "X")
       args$R = R
     }
-    gc(args$r, verbose = F)
     args$k = ncol(args$R)
+    gc(args$r, verbose = F)
   })
 
   try({
@@ -46,7 +67,7 @@ regEM = function(y, x, g = 2, ..., tol = 1E-6, family = "MixNormal",
       args$c2 = rep(args$c2, args$m)
     }
     args$phi = Matrix::Matrix(args$phi, sparse = T)
-  })
+  }, silent = T)
 
   y = eval(parse(text = family))(y)
   X = eval(parse(text = family))(X)
@@ -109,7 +130,14 @@ regEM = function(y, x, g = 2, ..., tol = 1E-6, family = "MixNormal",
   ll[3] = vero(y, medias, paramsAtual, args)
 
   Par = c(paramsAtual$params[,!colnames(paramsAtual$params) %in% c("delta", "gama")])
-  nPar = length(Par[!is.na(Par)])-length(args$lambda)
+  nPar = length(Par[!is.na(Par)])-length(args$lambda)-length(args$nuFixo)
+
+  if(is.null(args$nuFixo) & !is.null(args$nuIgual)){
+    if(args$nuIgual == T) nPar = nPar-args$g+1
+  }
+
+  if(grepl("Mix", family)) nPar = nPar+args$g-1
+
   aic = -2*ll[3] + 2*nPar
   bic = -2*ll[3] + log(args$n)*nPar
 
@@ -128,6 +156,7 @@ regEM = function(y, x, g = 2, ..., tol = 1E-6, family = "MixNormal",
     Iteracoes = it,
     Convergiu = conv,
     g = g,
+    nPar = nPar,
     l = ll[3],
     AIC = aic,
     BIC = bic,
@@ -136,8 +165,31 @@ regEM = function(y, x, g = 2, ..., tol = 1E-6, family = "MixNormal",
     se = se,
     P = paramsAtual$P
   )
-  class(resultados) = c("resultadosEM", family)
+  class(resultados) = c("resultadosEM", class(X))
   return(resultados)
 }
+#.S3method("regEM", "default", regEM.default)
 
+# regEM.formula = function(form, data, g = 2, ..., tol = 1E-6, family = "MixNormal",
+#                          grupoReal = NULL, max_iter = 1000, min_iter = 1, verbose = F, showSE = F){
+#
+#   v1 = rlang::f_lhs(form)
+#   v2 = rlang::f_rhs(form)
+#
+#   y = data[,v1] |>
+#     as.matrix()
+#
+#   x = data[,v2] |>
+#     as.matrix()
+#
+#   print(x)
+#
+#   f = function(...)
+#     regEM.default(y = y, x = x, g = g, ..., tol = tol, family = family,
+#                   grupoReal = grupoReal, max_iter = max_iter, min_iter = min_ter,
+#                   verbose = verbose, showSE = showSE)
+#
+#   do.call(f, list(...))
+# }
+# .S3method("regEM", "formula", regEM.formula)
 

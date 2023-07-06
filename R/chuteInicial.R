@@ -159,29 +159,61 @@ chuteInicial.MixSN = function(y, X, args){
 }
 .S3method("chuteInicial", "MixSN", chuteInicial.MixSN)
 
-chuteInicial.MoECenSN = function(y, X, args){
+chuteInicial.MixCenSN = function(y, X, args){
 
-  # if(!is.null(args$preRodada)){
-  #   return(chuteInicialPreRodada(y, X, args))
-  # }else{
-  #   result = regEM(
-  #     y,
-  #     X[,-1],
-  #     r = args$r,
-  #     family = "MoECenSN",
-  #     phi = args$phi,
-  #     c1 = args$c1,
-  #     c2 = args$c2,
-  #     g = args$g,
-  #     showSE = F,
-  #     verbose = F,
-  #     max_iter = 100,
-  #     min_iter = 100,
-  #     preRodada = T
-  #   )
-  #   print(t(result$Parametros))
-  #   return(list(params = t(result$Parametros), P = result$P))
-  # }
+  dados = cbind(y)
+
+  if(is.null(args$initGrupo)) args$initGrupo = "KMeans"
+  grupos = switch(args$initGrupo,
+                  "KMeans" = kmeans(dados, centers = args$g)$cluster,
+                  "Aleatório" = sample(1:args$g, args$n, replace = T)
+  )
+
+  props = prop.table(table(grupos))
+  if(props[1] < props[2]){
+    grupos_novo = grupos
+    grupos_novo[grupos == 1] = 2
+    grupos_novo[grupos == 2] = 1
+    grupos = grupos_novo
+  }
+
+  dadosGrupos = lapply(list("X" = X, "y" = y),
+                       function(x, grupos) lapply(split(x, grupos), matrix, ncol=dim(as.matrix(x))[2]),
+                       grupos = grupos)
+
+  params = do.call(rbind, mapply(estimaTeta.Normal,
+                                 dadosGrupos$y,
+                                 dadosGrupos$X,
+                                 SIMPLIFY = F))
+
+  medias = estimaMedia(X, params, args)
+
+  P = props
+
+  if(is.null(args$lambda)){
+    lambda = sapply(
+      1:args$g,
+      function(j)
+        moments::skewness(y[grupos == j]-medias[grupos == j, j])
+    )
+  }
+  else{
+    lambda = args$lambda
+  }
+
+
+  params = cbind(
+    params,
+    "lambda" = lambda,
+    "delta" = params[, "sigma"]*(lambda/sqrt(1 + lambda**2)),
+    "gama" = (params[, "sigma"]**2)*(1 - (lambda/sqrt(1 + lambda**2))**2)
+  )
+
+  return(list(params = params, P = P))
+}
+.S3method("chuteInicial", "MixCenSN", chuteInicial.MixCenSN)
+
+chuteInicial.MoECenSN = function(y, X, args){
 
   dados = cbind(y)
 
@@ -241,126 +273,149 @@ chuteInicial.MoECenSN = function(y, X, args){
 }
 .S3method("chuteInicial", "MoECenSN", chuteInicial.MoECenSN)
 
-# chuteInicialPreRodada = function(y, X, args){
-#
-#   dados = cbind(y)
-#
-#   if(is.null(args$initGrupo)) args$initGrupo = "KMeans"
-#   grupos = switch(args$initGrupo,
-#                   "KMeans" = kmeans(dados, centers = args$g)$cluster,
-#                   "Aleatório" = sample(1:args$g, args$n, replace = T)
-#   )
-#
-#   props = prop.table(table(grupos))
-#   if(props[1] < props[2]){
-#     grupos_novo = grupos
-#     grupos_novo[grupos == 1] = 2
-#     grupos_novo[grupos == 2] = 1
-#     grupos = grupos_novo
-#   }
-#
-#   dadosGrupos = lapply(list("X" = X, "y" = y),
-#                        function(x, grupos) lapply(split(x, grupos), matrix, ncol=dim(as.matrix(x))[2]),
-#                        grupos = grupos)
-#
-#   params = do.call(rbind, mapply(estimaTeta.Normal,
-#                                  dadosGrupos$y,
-#                                  dadosGrupos$X,
-#                                  SIMPLIFY = F))
-#
-#   medias = estimaMedia(X, params, args)
-#
-#   P = matrix(rep(c(prop.table(table(grupos))), args$n), byrow = T, ncol = args$g)
-#   alpha = matrix(c(rep(0, (args$g-1)*args$k), rep(NA, args$k)),
-#                  nrow = args$g, ncol = args$k, byrow = T)
-#
-#   colnames(alpha) = paste0("alpha", 1:args$k)
-#
-#   if(is.null(args$lambda)){
-#     lambda = sapply(
-#       1:args$g,
-#       function(j)
-#         moments::skewness(y[grupos == j]-medias[grupos == j, j])
-#     )
-#   }
-#   else{
-#     lambda = args$lambda
-#   }
-#
-#
-#   params = cbind(
-#     params,
-#     "lambda" = lambda,
-#     "delta" = params[, "sigma"]*(lambda/sqrt(1 + lambda**2)),
-#     "gama" = (params[, "sigma"]**2)*(1 - (lambda/sqrt(1 + lambda**2))**2)
-#   )
-#
-#   params = cbind(params, alpha = alpha)
-#
-#   return(list(params = params, P = P))
-# }
+chuteInicial.MoEST = function(y, X, args){
 
+  if(is.null(args$initial_iter)) args$initial_iter = 100
 
+  modeloSN = regEM(
+    y,
+    X[, -1],
+    r = args$R[,-1],
+    g = args$g,
+    min_iter = args$initial_iter,
+    max_iter = args$initial_iter,
+    family = "MoESN",
+    lambda = args$lambda,
+    verbose = args$verbose,
+    tol = args$tol
+  )
 
-# chuteInicial.MoECenST = function(y, X, args){
-#
-#   # if(is.null(args$nuFixo)){
-#   #
-#   #   if(is.null(args$nu)){
-#   #     nuFixo = rep(5, args$g)
-#   #   } else{
-#   #     nuFixo = args$nu
-#   #   }
-#
-#   # regSN = regEM(
-#   #   y,
-#   #   X[,-1],
-#   #   family = "MoECenSN",
-#   #   phi = args$phi,
-#   #   c1 = args$c1,
-#   #   c2 = args$c1,
-#   #   g = args$g,
-#   #   showSE = F,
-#   #   verbose = F,
-#   #   tol = 1E-4,
-#   #   max_iter = 50
-#   # )
-#   #
-#   #   params = t(regSN$Parametros)
-#   #   P = regSN$P
-#
-#     medias = X %*% t(params[, startsWith(colnames(params), "beta")])
-#
-#     Q = function(NU){
-#       sum(log(dMix.MoECenST(
-#         y = y,
-#         medias = medias,
-#         sigma = params[,"sigma"],
-#         lambda = params[,"lambda"],
-#         nu = NU,
-#         P = P,
-#         args = args
-#       )))
-#     }
-#
-#     nu = optim(rep(30, args$g),
-#                fn = Q,
-#                method = "L-BFGS-B",
-#                lower = 1,
-#                upper = 30,
-#                control = list(fnscale = -1)
-#     )$par
-#
-#     paramsNovo = as.matrix(cbind(params, "nu" = as.numeric(nu)))
-#
-#     return(list(params = params, P = P))
-#   # } else{
-#   #   chuteInicial.MoECenSTNuFixo(y, X, args)
-#   # }
-# }
-# .S3method("chuteInicial", "MoECenST", chuteInicial.MoECenST)
+  params = t(modeloSN$Parametros)
+  medias = estimaMedia(X, params, args)
+  P = modeloSN$P
+
+  Q = function(NU){
+
+    if(length(NU) == 1) NU = rep(NU, args$g)
+
+    ll = sum(log(dMix.MoEST(
+      y = y,
+      medias = medias,
+      sigma = params[,"sigma"],
+      lambda = params[,"lambda"],
+      nu = NU,
+      P = P,
+      args = args
+    )))
+    if(!is.finite(ll)) -.Machine$double.xmax
+    else ll
+  }
+
+  nu = tryCatch({
+    if(is.null(args$nuFixo)){
+      if(is.null(args$nuIgual) || (args$nuIgual != T)){
+        nu = optim(c(30, 30),
+                   fn = Q,
+                   method = "L-BFGS-B",
+                   lower = 0.1,
+                   upper = 30,
+                   control = list(fnscale = -1)
+        )$par
+      }else{
+        nu = optimize(
+          Q,
+          c(0.1, 30),
+          maximum = T
+        )$maximum
+        nu = rep(nu, args$g)
+      }
+    }
+    else nu = args$nuFixo
+  },
+  error = function(e) {return(rep(30, args$g))}
+  )
+
+  if(!is.null(args$nuFixo)) nu = args$nuFixo
+  params = cbind(params, nu = nu)
+
+  return(list(params = params, P = P))
+}
+.S3method("chuteInicial", "MoEST", chuteInicial.MoEST)
+
+chuteInicial.MixCenST = function(y, X, args){
+
+  if(is.null(args$initial_iter)) args$initial_iter = 100
+
+  modeloSN = regEM(
+    y,
+    X[, -1],
+    phi = args$phi,
+    c1 = args$c1,
+    c2 = args$c2,
+    g = args$g,
+    min_iter = args$initial_iter,
+    max_iter = args$initial_iter,
+    family = "MixCenSN",
+    lambda = args$lambda,
+    verbose = args$verbose,
+    tol = args$tol
+  )
+
+  params = t(modeloSN$Parametros)
+  medias = estimaMedia(X, params, args)
+  P = modeloSN$P
+
+  Q = function(NU){
+
+    if(length(NU) == 1) NU = rep(NU, args$g)
+
+    ll = sum(log(dMix.MixCenST(
+      y = y,
+      medias = medias,
+      sigma = params[,"sigma"],
+      lambda = params[,"lambda"],
+      nu = NU,
+      P = P,
+      args = args
+    )))
+    if(!is.finite(ll)) -.Machine$double.xmax
+    else ll
+  }
+
+  nu = tryCatch({
+    if(is.null(args$nuFixo)){
+      if(is.null(args$nuIgual) || (args$nuIgual != T)){
+        nu = optim(c(30, 30),
+                   fn = Q,
+                   method = "L-BFGS-B",
+                   lower = 0.1,
+                   upper = 30,
+                   control = list(fnscale = -1)
+        )$par
+      }else{
+        nu = optimize(
+          Q,
+          c(0.1, 30),
+          maximum = T
+        )$maximum
+        nu = rep(nu, args$g)
+      }
+    }
+    else nu = args$nuFixo
+  },
+  error = function(e) {return(rep(30, args$g))}
+  )
+
+  if(!is.null(args$nuFixo)) nu = args$nuFixo
+  params = cbind(params, nu = nu)
+
+  return(list(params = params, P = P))
+}
+.S3method("chuteInicial", "MixCenST", chuteInicial.MixCenST)
 
 chuteInicial.MoECenST = function(y, X, args){
+
+  if(is.null(args$initial_iter)) args$initial_iter = 100
 
   modeloSN = regEM(
     y,
@@ -370,8 +425,8 @@ chuteInicial.MoECenST = function(y, X, args){
     c1 = args$c1,
     c2 = args$c2,
     g = args$g,
-    min_iter = 100,
-    max_iter = 100,
+    min_iter = args$initial_iter,
+    max_iter = args$initial_iter,
     family = "MoECenSN",
     lambda = args$lambda,
     verbose = args$verbose
@@ -382,6 +437,9 @@ chuteInicial.MoECenST = function(y, X, args){
   P = modeloSN$P
 
   Q = function(NU){
+
+    if(length(NU) == 1) NU = rep(NU, args$g)
+
     ll = sum(log(dMix.MoECenST(
       y = y,
       medias = medias,
@@ -396,17 +454,30 @@ chuteInicial.MoECenST = function(y, X, args){
   }
 
   nu = tryCatch({
-    nu = optim(rep(20, args$g),
-               fn = Q,
-               method = "L-BFGS-B",
-               lower = 1,
-               upper = 20,
-               control = list(fnscale = -1)
-    )$par
+    if(is.null(args$nuFixo)){
+      if(is.null(args$nuIgual) || (args$nuIgual != T)){
+        nu = optim(c(30, 30),
+                   fn = Q,
+                   method = "L-BFGS-B",
+                   lower = 1,
+                   upper = 30,
+                   control = list(fnscale = -1)
+        )$par
+      }else{
+        nu = optimize(
+          Q,
+          c(0.1, 30),
+          maximum = T
+        )$maximum
+        nu = rep(nu, args$g)
+      }
+    }
+    else nu = args$nuFixo
   },
-  error = function(e) return(c(20, 20))
+  error = function(e) return(rep(30, args$g))
   )
 
+  if(!is.null(args$nuFixo)) nu = args$nuFixo
   params = cbind(params, nu = nu)
 
   return(list(params = params, P = P))
