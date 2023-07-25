@@ -1,3 +1,9 @@
+#' @title estimaSe
+#' @param reg modelo estimado da classe regEM
+#' @param y variável respostas
+#' @param x variáveis explicativas
+#' @return se
+#' @export
 estimaSe = function(reg, y, X, params = NULL, args = NULL, weights = 1, ...){
   UseMethod("estimaSe")
 }

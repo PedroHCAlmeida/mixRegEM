@@ -4,7 +4,15 @@
 \alias{predictMix}
 \title{predictMix}
 \usage{
-predictMix(reg, x = NULL, r = NULL, class = T)
+predictMix(
+  reg,
+  x = NULL,
+  r = NULL,
+  grupos = NULL,
+  class = T,
+  real = NULL,
+  estimator = "mean"
+)
 }
 \arguments{
 \item{reg}{objeto de regressão de misturas}

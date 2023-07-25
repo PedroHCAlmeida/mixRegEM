@@ -1,3 +1,13 @@
+#' @title search
+#' @param ... Parâmetros da função regEM
+#' @param g número de grupos
+#' @param tol tolerância
+#' @param family família
+#' @param criteria critério de seleção
+#' @param verbose mostrar a verossimilhança passo a passo
+#' @param best retornar apenas o melhor modelo
+#' @return resultados finais
+#' @export
 search = function(..., g = 2:8, family = "MixNormal", criteria = "BIC", verbose = F, best = F){
 
   results = expand.grid(g, family)

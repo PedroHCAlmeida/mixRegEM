@@ -13,8 +13,9 @@ regEM(
   family = "MixNormal",
   grupoReal = NULL,
   max_iter = 1000,
-  min_iter = 5,
-  verbose = T
+  min_iter = 1,
+  verbose = F,
+  showSE = F
 )
 }
 \arguments{
