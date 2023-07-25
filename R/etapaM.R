@@ -62,8 +62,9 @@ etapaM.MixT = function(y, X, U, params, args){
                                        Z = U$Z[,j], K = U$K[,j])))
 
 
+  medias = estimaMedia(X, paramsNovo, args)
   Q = function(nu){
-    sum(log(dMix.MixT(y, X, paramsNovo[, startsWith(colnames(paramsNovo), "beta")],
+    sum(log(dMix.MixT(y, medias, paramsNovo[, startsWith(colnames(paramsNovo), "beta")],
               paramsNovo[,"sigma"], nu = nu, params$P)))
   }
 
@@ -109,7 +110,7 @@ etapaM.MoET = function(y, X, U, params, args){
   nu = optim(params$params[,"nu"],
              fn = Q,
              method = "L-BFGS-B",
-             lower = 0.1,
+             lower = 1,
              upper = 30,
              control = list(fnscale = -1)
   )$par
@@ -176,14 +177,14 @@ etapaM.MoEST = function(y, X, U, params, args){
       nu = optim(params$params[,"nu"],
                  fn = Q,
                  method = "L-BFGS-B",
-                 lower = 0.1,
+                 lower = 1,
                  upper = 30,
                  control = list(fnscale = -1)
       )$par
     }else{
       nu = optimize(
         Q,
-        c(0.1, 30),
+        c(1, 30),
         maximum = T
       )$maximum
       nu = rep(nu, args$g)
@@ -345,14 +346,14 @@ etapaM.MixCenST = function(y, X, U, params, args){
       nu = optim(params$params[,"nu"],
                  fn = Q,
                  method = "L-BFGS-B",
-                 lower = 0.1,
+                 lower = 1,
                  upper = 30,
                  control = list(fnscale = -1)
       )$par
     }else{
       nu = optimize(
         Q,
-        c(0.1, 30),
+        c(1, 30),
         maximum = T
       )$maximum
       nu = rep(nu, args$g)
@@ -421,14 +422,14 @@ etapaM.MoECenST = function(y, X, U, params, args){
       nu = optim(params$params[,"nu"],
                  fn = Q,
                  method = "L-BFGS-B",
-                 lower = 0.1,
+                 lower = 1,
                  upper = 30,
                  control = list(fnscale = -1)
       )$par
     }else{
       nu = optimize(
         Q,
-        c(0.1, 30),
+        c(1, 30),
         maximum = T
       )$maximum
       nu = rep(nu, args$g)

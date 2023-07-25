@@ -71,10 +71,12 @@ etapaE.MixSN = function(y, X, params, medias, args, ...){
                return(list(Z, t1, t2))
                })
 
+
   U = lapply(1:3, function(i) do.call(cbind, U_list[i,])) |>
     setNames(c("Z", "t1", "t2"))
 
   U$Z = t(sapply(1:args$n, function(i) U$Z[i,]/sum(U$Z[i,])))
+  if(dim(U$Z)[1] != args$n) U$Z = t(U$Z)
   U$t1 = U$Z*U$t1
   U$t2 = U$Z*U$t2
 
@@ -116,6 +118,7 @@ etapaE.MoESN = function(y, X, params, medias, args, ...){
 
   soma_z = apply(U$Z, 1, sum)
   U$Z = sapply(1:args$g, function(j) U$Z[,j]/soma_z)
+  if(dim(U$Z)[1] != args$n) U$Z = t(U$Z)
   return(U)
 }
 .S3method("etapaE", "MoESN", etapaE.MoESN)
@@ -169,6 +172,7 @@ etapaE.MixST = function(y, X, params, medias, args, ...){
     setNames(c("Z", "e00", "e01", "e02", "e10", "e20", "e11"))
   soma_z = apply(U$Z, 1, sum)
   U$Z = sapply(1:args$g, function(j) U$Z[,j]/soma_z)
+  if(dim(U$Z)[1] != args$n) U$Z = t(U$Z)
 
   return(U)
 }
@@ -223,6 +227,7 @@ etapaE.MoEST = function(y, X, params, medias, args, ...){
     setNames(c("Z", "e00", "e01", "e02", "e10", "e20", "e11"))
   soma_z = apply(U$Z, 1, sum)
   U$Z = sapply(1:args$g, function(j) U$Z[,j]/soma_z)
+  if(dim(U$Z)[1] != args$n) U$Z = t(U$Z)
 
   return(U)
 }
@@ -270,7 +275,7 @@ etapaE.MixCenSN = function(y, X, params, medias, args, ...){
       try({
         e01[phi1] = unlist(moments[1,])
         e02[phi1] = unlist(moments[2,])
-      })
+      }, silent = T)
       e02[!phi1] = y[!phi1]**2
 
       w0[phi1] = mapply(
@@ -288,22 +293,22 @@ etapaE.MixCenSN = function(y, X, params, medias, args, ...){
       try({
         P0 = pnorm(args$c2, medias[phi1,j], sqrt(params$params[j,"gama"]))-pnorm(args$c1, medias[phi1,j], sqrt(params$params[j,"gama"]))
         tau_gama[phi1] = P0/(sqrt(pi*(1 + params$params[j,"lambda"]^2)/2)*R0)
-      })
+      }, silent = T)
 
       e10[!phi1] = (Mu[!phi1] + MT*tau_gama[!phi1])
       try({
         e10[phi1] = ((M2T*params$params[j,"delta"]/params$params[j,"gama"])*(e01[phi1] - medias[phi1,j]))+MT*tau_gama[phi1]
-      })
+      }, silent = T)
       e20[!phi1] = Mu[!phi1]**2 + M2T + Mu[!phi1]*MT*tau_gama[!phi1]
       try({
         e20[phi1] = (M2T*params$params[j,"delta"]/params$params[j,"gama"])**2*(e02[phi1] - 2*medias[phi1,j]*e01[phi1] + medias[phi1,j]**2) +
           (MT**3*params$params[j,"delta"]/params$params[j,"gama"]*(w0[phi1]-medias[phi1,j])*tau_gama[phi1]) + M2T
-      })
+      }, silent = T)
       e11[!phi1] = e01[!phi1]*e10[!phi1]
       try({
         e11[phi1] = (M2T*params$params[j,"delta"]/params$params[j,"gama"])*(e02[phi1] - medias[phi1,j]*e01[phi1]) +
           (MT*w0[phi1]*tau_gama[phi1])
-      })
+      }, silent = T)
 
       return(list(Z, e01, e02, e10, e20, e11))
     })
@@ -312,6 +317,8 @@ etapaE.MixCenSN = function(y, X, params, medias, args, ...){
 
   soma_z = apply(U$Z, 1, sum)
   U$Z = sapply(1:args$g, function(j) U$Z[,j]/soma_z)
+  if(dim(U$Z)[1] != args$n) U$Z = t(U$Z)
+
   return(U)
 }
 .S3method("etapaE", "MixCenSN", etapaE.MixCenSN)
@@ -358,7 +365,7 @@ etapaE.MoECenSN = function(y, X, params, medias, args, ...){
       try({
         e01[phi1] = unlist(moments[1,])
         e02[phi1] = unlist(moments[2,])
-      })
+      }, silent = T)
       e02[!phi1] = y[!phi1]**2
 
       w0[phi1] = mapply(
@@ -376,22 +383,22 @@ etapaE.MoECenSN = function(y, X, params, medias, args, ...){
       try({
         P0 = pnorm(args$c2, medias[phi1,j], sqrt(params$params[j,"gama"]))-pnorm(args$c1, medias[phi1,j], sqrt(params$params[j,"gama"]))
         tau_gama[phi1] = P0/(sqrt(pi*(1 + params$params[j,"lambda"]^2)/2)*R0)
-      })
+      }, silent = T)
 
       e10[!phi1] = (Mu[!phi1] + MT*tau_gama[!phi1])
       try({
         e10[phi1] = ((M2T*params$params[j,"delta"]/params$params[j,"gama"])*(e01[phi1] - medias[phi1,j]))+MT*tau_gama[phi1]
-      })
+      }, silent = T)
       e20[!phi1] = Mu[!phi1]**2 + M2T + Mu[!phi1]*MT*tau_gama[!phi1]
       try({
         e20[phi1] = (M2T*params$params[j,"delta"]/params$params[j,"gama"])**2*(e02[phi1] - 2*medias[phi1,j]*e01[phi1] + medias[phi1,j]**2) +
               (MT**3*params$params[j,"delta"]/params$params[j,"gama"]*(w0[phi1]-medias[phi1,j])*tau_gama[phi1]) + M2T
-      })
+      }, silent = T)
       e11[!phi1] = e01[!phi1]*e10[!phi1]
       try({
         e11[phi1] = (M2T*params$params[j,"delta"]/params$params[j,"gama"])*(e02[phi1] - medias[phi1,j]*e01[phi1]) +
                     (MT*w0[phi1]*tau_gama[phi1])
-      })
+      }, silent = T)
 
       return(list(Z, e01, e02, e10, e20, e11))
       })
@@ -400,6 +407,7 @@ etapaE.MoECenSN = function(y, X, params, medias, args, ...){
 
   soma_z = apply(U$Z, 1, sum)
   U$Z = sapply(1:args$g, function(j) U$Z[,j]/soma_z)
+  if(dim(U$Z)[1] != args$n) U$Z = t(U$Z)
   return(U)
 }
 .S3method("etapaE", "MoECenSN", etapaE.MoECenSN)
@@ -436,14 +444,14 @@ etapaE.MixCenST = function(y, X, params, medias, args, ...){
 
       pU = sn::dst(y[!phi1], medias[!phi1,j], params$params[j,"sigma"], params$params[j,"lambda"], params$params[j,"nu"])
 
-      sigma_ =  params$params[j,"sigma"]*sqrt(params$params[j,"nu"]/(params$params[j,"nu"]+2))
-      P0 = sn::pst(args$c2, medias[phi1, j], sigma_, params$params[j,"lambda"], nu = params$params[j,"nu"]+2)-
-        sn::pst(args$c1, medias[phi1,j], sigma_, params$params[j,"lambda"], nu = params$params[j,"nu"]+2)
+      sigma_ =  (params$params[j,"sigma"]**2)*(params$params[j,"nu"]/(params$params[j,"nu"]+2))
+      P0 = sn::pst(args$c2, medias[phi1, j], sqrt(sigma_), params$params[j,"lambda"], nu = params$params[j,"nu"]+2)-
+        sn::pst(args$c1, medias[phi1,j], sqrt(sigma_), params$params[j,"lambda"], nu = params$params[j,"nu"]+2)
 
-      sigma__ = params$params[j,"sigma"]*sqrt(params$params[j,"nu"]/((params$params[j,"nu"]+1)*(1+params$params[j,"lambda"]**2)))
+      sigma__ = (params$params[j,"sigma"]**2)*sqrt(params$params[j,"nu"]/((params$params[j,"nu"]+1)*(1+params$params[j,"lambda"]**2)))
 
-      R0 = sn::pst(args$c2, medias[phi1, j], sigma__,  0, params$params[j,"nu"]+1)-
-        sn::pst(args$c1, medias[phi1,j], sigma__, 0, params$params[j,"nu"]+1)
+      R0 = sn::pst(args$c2, medias[phi1, j], sqrt(sigma__),  0, params$params[j,"nu"]+1)-
+        sn::pst(args$c1, medias[phi1,j], sqrt(sigma__), 0, params$params[j,"nu"]+1)
 
       R0_F0 = R0/ifelse(F0 == 0, .Machine$double.xmin, F0)
 
@@ -457,7 +465,7 @@ etapaE.MixCenST = function(y, X, params, medias, args, ...){
               lower = args$c1[i],
               upper = args$c2[i],
               mu = medias[ic, j],
-              Sigma = as.matrix(params$params[j,"sigma"]^2),
+              Sigma = as.matrix(sigma_),
               nu = as.matrix(round(params$params[j,"nu"])+2),
               dist = 't')[c(1,2)])
           }else{
@@ -465,7 +473,7 @@ etapaE.MixCenST = function(y, X, params, medias, args, ...){
               lower = args$c1[i],
               upper = args$c2[i],
               mu = medias[ic, j],
-              Sigma = as.matrix(params$params[j,"sigma"]^2),
+              Sigma = as.matrix(sigma_),
               lambda = as.matrix(params$params[j,"lambda"]),
               nu = as.matrix(round(params$params[j,"nu"])+2),
               dist = 'ST')[c(1,2)])
@@ -483,7 +491,7 @@ etapaE.MixCenST = function(y, X, params, medias, args, ...){
 
       w0[phi1] = mapply(
         function(ic, i) MomTrunc::MCmeanvarTMD(lower = args$c1[i], upper = args$c2[i], mu = medias[ic, j],
-                                               Sigma = as.matrix(sigma__**2), nu = as.matrix(round(params$params[j,"nu"])+1), dist = 't')$mean
+                                               Sigma = as.matrix(sigma__), nu = as.matrix(round(params$params[j,"nu"])+1), dist = 't')$mean
         , which(phi1), 1:args$m
       )
 
@@ -513,6 +521,7 @@ etapaE.MixCenST = function(y, X, params, medias, args, ...){
     setNames(c("Z", "e00", "e01", "e02", "e10", "e20", "e11"))
   soma_z = apply(U$Z, 1, sum)
   U$Z = sapply(1:args$g, function(j) U$Z[,j]/soma_z)
+  if(dim(U$Z)[1] != args$n) U$Z = t(U$Z)
 
   return(U)
 }
@@ -550,14 +559,14 @@ etapaE.MoECenST = function(y, X, params, medias, args, ...){
 
       pU = sn::dst(y[!phi1], medias[!phi1,j], params$params[j,"sigma"], params$params[j,"lambda"], params$params[j,"nu"])
 
-      sigma_ =  params$params[j,"sigma"]*sqrt(params$params[j,"nu"]/(params$params[j,"nu"]+2))
-      P0 = sn::pst(args$c2, medias[phi1, j], sigma_, params$params[j,"lambda"], nu = params$params[j,"nu"]+2)-
-        sn::pst(args$c1, medias[phi1,j], sigma_, params$params[j,"lambda"], nu = params$params[j,"nu"]+2)
+      sigma_ = (params$params[j,"sigma"]**2)*(params$params[j,"nu"]/(params$params[j,"nu"]+2))
+      P0 = sn::pst(args$c2, medias[phi1, j], sqrt(sigma_), params$params[j,"lambda"], nu = params$params[j,"nu"]+2)-
+        sn::pst(args$c1, medias[phi1,j], sqrt(sigma_), params$params[j,"lambda"], nu = params$params[j,"nu"]+2)
 
-      sigma__ = params$params[j,"sigma"]*sqrt(params$params[j,"nu"]/((params$params[j,"nu"]+1)*(1+params$params[j,"lambda"]**2)))
+      sigma__ = (params$params[j,"sigma"]**2)*(params$params[j,"nu"]/((params$params[j,"nu"]+1)*(1+params$params[j,"lambda"]**2)))
 
-      R0 = sn::pst(args$c2, medias[phi1, j], sigma__,  0, params$params[j,"nu"]+1)-
-        sn::pst(args$c1, medias[phi1,j], sigma__, 0, params$params[j,"nu"]+1)
+      R0 = sn::pst(args$c2, medias[phi1, j], sqrt(sigma__),  0, params$params[j,"nu"]+1)-
+        sn::pst(args$c1, medias[phi1,j], sqrt(sigma__), 0, params$params[j,"nu"]+1)
 
       R0_F0 = R0/ifelse(F0 == 0, .Machine$double.xmin, F0)
 
@@ -567,22 +576,24 @@ etapaE.MoECenST = function(y, X, params, medias, args, ...){
       moments = mapply(
         function(ic, i){
           if(params$params[j,"lambda"] == 0){
-            return(MomTrunc::MCmeanvarTMD(
-              lower = args$c1[i],
-              upper = args$c2[i],
-              mu = medias[ic, j],
-              Sigma = as.matrix(params$params[j,"sigma"]^2),
-              nu = as.matrix(round(params$params[j,"nu"])+2),
-              dist = 't')[c(1,2)])
+            return(
+              MomTrunc::MCmeanvarTMD(
+                lower = args$c1[i],
+                upper = args$c2[i],
+                mu = medias[ic, j],
+                Sigma = as.matrix(sigma_),
+                nu = as.matrix(round(params$params[j,"nu"])+2),
+                dist = 't')[c(1,2)])
           }else{
-            return(MomTrunc::MCmeanvarTMD(
-              lower = args$c1[i],
-              upper = args$c2[i],
-              mu = medias[ic, j],
-              Sigma = as.matrix(params$params[j,"sigma"]^2),
-              lambda = as.matrix(params$params[j,"lambda"]),
-              nu = as.matrix(round(params$params[j,"nu"])+2),
-              dist = 'ST')[c(1,2)])
+            return(
+              MomTrunc::MCmeanvarTMD(
+                lower = args$c1[i],
+                upper = args$c2[i],
+                mu = medias[ic, j],
+                Sigma = as.matrix(sigma_),
+                lambda = as.matrix(params$params[j,"lambda"]),
+                nu = as.matrix(round(params$params[j,"nu"])+2),
+                dist = 'ST')[c(1,2)])
           }}
         , which(phi1), 1:args$m
       )
@@ -597,7 +608,7 @@ etapaE.MoECenST = function(y, X, params, medias, args, ...){
 
       w0[phi1] = mapply(
             function(ic, i) MomTrunc::MCmeanvarTMD(lower = args$c1[i], upper = args$c2[i], mu = medias[ic, j],
-                                             Sigma = as.matrix(sigma__**2), nu = as.matrix(round(params$params[j,"nu"])+1), dist = 't')$mean
+                                             Sigma = as.matrix(sigma__), nu = as.matrix(round(params$params[j,"nu"])+1), dist = 't')$mean
             , which(phi1), 1:args$m
           )
 
@@ -627,6 +638,7 @@ etapaE.MoECenST = function(y, X, params, medias, args, ...){
     setNames(c("Z", "e00", "e01", "e02", "e10", "e20", "e11"))
   soma_z = apply(U$Z, 1, sum)
   U$Z = sapply(1:args$g, function(j) U$Z[,j]/soma_z)
+  if(dim(U$Z)[1] != args$n) U$Z = t(U$Z)
 
   return(U)
 }

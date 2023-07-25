@@ -2,39 +2,38 @@ dMix = function(Y, medias, params, ...){
   UseMethod("dMix")
 }
 
-dMix.MixNormal = function(y, medias, beta, sigma, P){
+dMix.MixNormal = function(y, medias, beta, sigma, P, args){
   total = lapply(1:nrow(beta),
                  function(j) P[j]*dnorm(y, medias[,j], sigma[j]))
   return(rowSums(do.call(cbind, total)))
 }
 .S3method("dMix", "MixNormal", dMix.MixNormal)
 
-dMix.MoENormal = function(y, medias, beta, sigma, P){
+dMix.MoENormal = function(y, medias, beta, sigma, P, args){
   total = lapply(1:nrow(beta),
                  function(j) P[,j]*dnorm(y, medias[,j], sigma[j]))
   return(rowSums(do.call(cbind, total)))
 }
 .S3method("dMix", "MoENormal", dMix.MoENormal)
 
-dMix.MixT = function(y, medias, beta, sigma, nu, P){
+dMix.MixT = function(y, medias, beta, sigma, nu, P, args){
   total = lapply(1:nrow(beta),
                  function(j) P[j]*sn::dst(y, medias[,j], sigma[j], nu = nu[j]))
   return(rowSums(do.call(cbind, total)))
 }
 .S3method("dMix", "MixT", dMix.MixT)
 
-dMix.MoET = function(y, medias, beta, sigma, nu, P){
+dMix.MoET = function(y, medias, beta, sigma, nu, P, args){
   total = lapply(1:nrow(beta),
                  function(j) P[,j]*sn::dst(y, medias[j,], sigma[j], nu = nu[j]))
   return(rowSums(do.call(cbind, total)))
 }
 .S3method("dMix", "MoET", dMix.MoET)
 
-dMix.MixSN = function(y, medias, beta, sigma, lambda, delta, P){
+dMix.MixSN = function(y, medias, beta, sigma, lambda, delta, P, args){
 
   b = -sqrt(2/pi)
-
-  total = lapply(1:nrow(beta),
+  total = lapply(1:args$g,
                  function(j) P[j]*sn::dsn(y, medias[,j],
                                           omega = sigma[j],
                                           alpha = lambda[j]))

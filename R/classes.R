@@ -65,6 +65,12 @@ MoESN = function(x){
 setClass("MixST",
          representation(Y = "Y"))
 
+MixST = function(x){
+  class(x) = c("MixST", "MixCenST", "MixT", class(x))
+  return(x)
+}
+
+
 MoEST = function(x){
   class(x) = c("MixST", "MixCenST", "MixT", class(x))
   return(x)

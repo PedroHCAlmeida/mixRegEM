@@ -5,14 +5,16 @@ vero = function(y, medias, params, args, ...){
 vero.MixNormal = function(y, medias, params, args){
   sum(log(dMix.MixNormal(y, medias,
                          params$params[, startsWith(colnames(params$params), "beta")],
-                         params$params[,"sigma"], params$P)))
+                         params$params[,"sigma"], params$P,
+                         args = args)))
 }
 .S3method("vero", "MixNormal", vero.MixNormal)
 
 vero.MoENormal = function(y, medias, params, args){
   sum(log(dMix(y, medias,
                params$params[, startsWith(colnames(params$params), "beta")],
-               params$params[,"sigma"], params$P)))
+               params$params[,"sigma"], params$P,
+               args = args)))
 }
 .S3method("vero", "MoENormal", vero.MoENormal)
 
@@ -23,7 +25,8 @@ vero.MixT = function(y, medias, params, args){
     beta = params$params[, startsWith(colnames(params$params), "beta")],
     sigma = params$params[,"sigma"],
     nu = params$params[,"nu"],
-    P = params$P
+    P = params$P,
+    args = args
     )))
 }
 .S3method("vero", "MixT", vero.MixT)
@@ -48,7 +51,9 @@ vero.MixSN = function(y, medias, params, args){
     sigma = params$params[,"sigma"],
     lambda = params$params[, "lambda"],
     delta = params$params[, "delta"],
-    P = params$P)))
+    P = params$P,
+    args = args
+    )))
 }
 .S3method("vero", "MixSN", vero.MixSN)
 

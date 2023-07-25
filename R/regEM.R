@@ -37,6 +37,13 @@ regEM = function(y, x, g = 2, ..., tol = 1E-6, family = "MixNormal",
       "MoECenT" = "MoECenST"
     )
   }
+  if(family %in% c("MixST")){
+    args$phi = rep(0, nrow(x));args$c1 = -Inf;args$c2 = -Inf
+    family = switch(
+      family,
+      "MixST" = "MixCenST"
+    )
+  }
   args$n = length(y)
   args$g = g
   args$verbose = verbose
@@ -142,12 +149,16 @@ regEM = function(y, x, g = 2, ..., tol = 1E-6, family = "MixNormal",
   bic = -2*ll[3] + log(args$n)*nPar
 
   gruposEM = apply(U$Z, 1, which.max)
-  r = rank(-table(gruposEM))
-  grupos_ordem = numeric(args$n)
-  for(i in 1:length(r)){
-    grupos_ordem[gruposEM == names(r[i])] = r[i]
+
+  props = prop.table(table(gruposEM))
+  ordem = rank(-props)
+  grupos_novo = ordem[gruposEM]
+
+  if(all(gruposEM != grupos_novo)){
+    paramsAtual$params = paramsAtual$params[ordem,]
+    paramsAtual$P = matrix(paramsAtual$P, ncol = args$g)[,ordem]
+    U = lapply(U, function(x) matrix(x, ncol = args$g)[,ordem])
   }
-  gruposEM = grupos_ordem
 
   rownames(paramsAtual$params) = 1:nrow(paramsAtual$params)
   if(showSE) se = estimaSe(y, X, paramsAtual, args = args, U = U) else se = NULL
@@ -163,7 +174,8 @@ regEM = function(y, x, g = 2, ..., tol = 1E-6, family = "MixNormal",
     Parametros = t(paramsAtual$params),
     U = U,
     se = se,
-    P = paramsAtual$P
+    P = paramsAtual$P,
+    args = args
   )
   class(resultados) = c("resultadosEM", class(X))
   return(resultados)

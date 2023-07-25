@@ -12,9 +12,14 @@ chuteInicial.MixNormal = function(y, X, args){
                   "Aleatório" = sample(1:args$g, args$n, replace = T)
   )
 
+  props = prop.table(table(grupos))
+  ordem = rank(-props)
+  grupos_novo = ordem[grupos]
+
   dadosGrupos = lapply(list("X" = X, "y" = y),
                        function(x, grupos) lapply(split(x, grupos), matrix, ncol=dim(as.matrix(x))[2]),
-                       grupos = grupos)
+                       grupos = grupos_novo)
+
 
   params = do.call(rbind, mapply(estimaTeta.Normal,
                                  dadosGrupos$y,
@@ -39,9 +44,13 @@ chuteInicial.MoENormal = function(y, X, args, initGrupo = "KMeans"){
                   "Aleatório" = sample(1:args$g, args$n, replace = T)
   )
 
+  props = prop.table(table(grupos))
+  ordem = rank(-props)
+  grupos_novo = ordem[grupos]
+
   dadosGrupos = lapply(list("X" = X, "y" = y),
                        function(x, grupos) lapply(split(x, grupos), matrix, ncol=dim(as.matrix(x))[2]),
-                       grupos = grupos)
+                       grupos = grupos_novo)
 
   params = do.call(rbind, mapply(estimaTeta.Normal,
                                  dadosGrupos$y,
@@ -68,10 +77,14 @@ chuteInicial.MixT = function(y, X, args, initGrupo = "KMeans"){
                   "Aleatório" = sample(1:args$g, args$n, replace = T)
   )
 
+  props = prop.table(table(grupos))
+  ordem = rank(-props)
+  grupos_novo = ordem[grupos]
+
   dadosGrupos = lapply(list("X" = X, "y" = y),
                        function(x, grupos) lapply(split(x, grupos),
                                                   matrix, ncol=dim(as.matrix(x))[2]),
-                       grupos = grupos)
+                       grupos = grupos_novo)
 
   params = do.call(rbind, mapply(estimaTeta.Normal,
                                  dadosGrupos$y,
@@ -80,7 +93,7 @@ chuteInicial.MixT = function(y, X, args, initGrupo = "KMeans"){
 
   params = as.matrix(cbind(params, "nu" = rep(5, args$g)))
 
-  P = prop.table(table(grupos))
+  P = prop.table(table(grupos_novo))
 
   return(list(params = params, P = P))
 }
@@ -97,10 +110,14 @@ chuteInicial.MoET = function(y, X, args, initGrupo = "KMeans"){
                   "Aleatório" = sample(1:args$g, args$n, replace = T)
   )
 
+  props = prop.table(table(grupos))
+  ordem = rank(-props)
+  grupos_novo = ordem[grupos]
+
   dadosGrupos = lapply(list("X" = X, "y" = y),
                        function(x, grupos) lapply(split(x, grupos),
                                                   matrix, ncol=dim(as.matrix(x))[2]),
-                       grupos = grupos)
+                       grupos = grupos_novo)
 
   params = do.call(rbind, mapply(estimaTeta.Normal,
                                  dadosGrupos$y,
@@ -109,7 +126,7 @@ chuteInicial.MoET = function(y, X, args, initGrupo = "KMeans"){
 
   params = as.matrix(cbind(params, "nu" = rep(30, args$g)))
 
-  P = matrix(rep(c(prop.table(table(grupos))), args$n), byrow = T, ncol = args$g)
+  P = matrix(rep(c(prop.table(table(grupos_novo))), args$n), byrow = T, ncol = args$g)
   alpha = matrix(c(rep(0, (args$g-1)*k), rep(NA, k)),
                  nrow = args$g, ncol = k, byrow = T)
 
@@ -130,9 +147,13 @@ chuteInicial.MixSN = function(y, X, args){
                   "Aleatório" = sample(1:args$g, args$n, replace = T)
   )
 
+  props = prop.table(table(grupos))
+  ordem = rank(-props)
+  grupos_novo = ordem[grupos]
+
   dadosGrupos = lapply(list("X" = X, "y" = y),
                        function(x, grupos) lapply(split(x, grupos), matrix, ncol=dim(as.matrix(x))[2]),
-                       grupos = grupos)
+                       grupos = grupos_novo)
 
   params = do.call(rbind, mapply(estimaTeta.Normal,
                                  dadosGrupos$y,
@@ -144,7 +165,7 @@ chuteInicial.MixSN = function(y, X, args){
   lambda = sapply(
     1:args$g,
     function(j)
-      moments::skewness(y[grupos == j]-medias[grupos == j, j])
+      moments::skewness(y[grupos_novo == j]-medias[grupos_novo == j, j])
     )
 
   params = cbind(
@@ -153,7 +174,7 @@ chuteInicial.MixSN = function(y, X, args){
     "delta" = params[, "sigma"]*(lambda/sqrt(1 + lambda**2)),
     "gama" = (params[, "sigma"]**2)*(1 - (lambda/sqrt(1 + lambda**2))**2)
   )
-  P = prop.table(table(grupos))
+  P = prop.table(table(grupos_novo))
 
   return(list(params = params, P = P))
 }
@@ -165,21 +186,21 @@ chuteInicial.MixCenSN = function(y, X, args){
 
   if(is.null(args$initGrupo)) args$initGrupo = "KMeans"
   grupos = switch(args$initGrupo,
-                  "KMeans" = kmeans(dados, centers = args$g)$cluster,
+                  "KMeans" = do.call(
+                    function(...)
+                      kmeans(dados, centers = args$g, ...)$cluster,
+                    as.list(args$kmeans_params)
+                    ),
                   "Aleatório" = sample(1:args$g, args$n, replace = T)
   )
 
   props = prop.table(table(grupos))
-  if(props[1] < props[2]){
-    grupos_novo = grupos
-    grupos_novo[grupos == 1] = 2
-    grupos_novo[grupos == 2] = 1
-    grupos = grupos_novo
-  }
+  ordem = rank(-props)
+  grupos_novo = ordem[grupos]
 
   dadosGrupos = lapply(list("X" = X, "y" = y),
                        function(x, grupos) lapply(split(x, grupos), matrix, ncol=dim(as.matrix(x))[2]),
-                       grupos = grupos)
+                       grupos = grupos_novo)
 
   params = do.call(rbind, mapply(estimaTeta.Normal,
                                  dadosGrupos$y,
@@ -188,13 +209,13 @@ chuteInicial.MixCenSN = function(y, X, args){
 
   medias = estimaMedia(X, params, args)
 
-  P = props
+  P = prop.table(table(grupos_novo))
 
   if(is.null(args$lambda)){
     lambda = sapply(
       1:args$g,
       function(j)
-        moments::skewness(y[grupos == j]-medias[grupos == j, j])
+        moments::skewness(y[grupos_novo == j]-medias[grupos_novo == j, j])
     )
   }
   else{
@@ -224,16 +245,12 @@ chuteInicial.MoECenSN = function(y, X, args){
   )
 
   props = prop.table(table(grupos))
-  if(props[1] < props[2]){
-    grupos_novo = grupos
-    grupos_novo[grupos == 1] = 2
-    grupos_novo[grupos == 2] = 1
-    grupos = grupos_novo
-  }
+  ordem = rank(-props)
+  grupos_novo = ordem[grupos]
 
   dadosGrupos = lapply(list("X" = X, "y" = y),
                        function(x, grupos) lapply(split(x, grupos), matrix, ncol=dim(as.matrix(x))[2]),
-                       grupos = grupos)
+                       grupos = grupos_novo)
 
   params = do.call(rbind, mapply(estimaTeta.Normal,
                                  dadosGrupos$y,
@@ -242,7 +259,7 @@ chuteInicial.MoECenSN = function(y, X, args){
 
   medias = estimaMedia(X, params, args)
 
-  P = matrix(rep(c(prop.table(table(grupos))), args$n), byrow = T, ncol = args$g)
+  P = matrix(rep(c(prop.table(table(grupos_novo))), args$n), byrow = T, ncol = args$g)
   alpha = matrix(c(rep(0, (args$g-1)*args$k), rep(NA, args$k)),
                  nrow = args$g, ncol = args$k, byrow = T)
 
@@ -252,7 +269,7 @@ chuteInicial.MoECenSN = function(y, X, args){
     lambda = sapply(
       1:args$g,
       function(j)
-        moments::skewness(y[grupos == j]-medias[grupos == j, j])
+        moments::skewness(y[grupos_novo == j]-medias[grupos_novo == j, j])
     )
   }
   else{
@@ -317,14 +334,14 @@ chuteInicial.MoEST = function(y, X, args){
         nu = optim(c(30, 30),
                    fn = Q,
                    method = "L-BFGS-B",
-                   lower = 0.1,
+                   lower = 1,
                    upper = 30,
                    control = list(fnscale = -1)
         )$par
       }else{
         nu = optimize(
           Q,
-          c(0.1, 30),
+          c(1, 30),
           maximum = T
         )$maximum
         nu = rep(nu, args$g)
@@ -388,14 +405,14 @@ chuteInicial.MixCenST = function(y, X, args){
         nu = optim(c(30, 30),
                    fn = Q,
                    method = "L-BFGS-B",
-                   lower = 0.1,
+                   lower = 1,
                    upper = 30,
                    control = list(fnscale = -1)
         )$par
       }else{
         nu = optimize(
           Q,
-          c(0.1, 30),
+          c(1, 30),
           maximum = T
         )$maximum
         nu = rep(nu, args$g)
@@ -466,7 +483,7 @@ chuteInicial.MoECenST = function(y, X, args){
       }else{
         nu = optimize(
           Q,
-          c(0.1, 30),
+          c(1, 30),
           maximum = T
         )$maximum
         nu = rep(nu, args$g)

@@ -37,7 +37,7 @@ estimaTeta.MoENormal = function(y, X, Z, R, alpha, P){
 estimaTeta.MixT = function(y, X, Z, K){
 
   X = Matrix::Matrix(X, sparse = T)
-  beta = solve(t(X)%*%Matrix::Diagonal(x = Z*K)%*%X)%*%Matrix::Matrix(t(X)%*%Matrix::Matrix(Z*K*y))
+  beta = solve(Matrix::t(X)%*%Matrix::Diagonal(x = Z*K)%*%X)%*%Matrix::Matrix(Matrix::t(X)%*%Matrix::Matrix(Z*K*y))
   sigma = sqrt(sum(Z*K*((y - (X%*%beta))^2))/sum(Z))
 
   c(beta = as.matrix(beta), sigma = sigma)
@@ -69,7 +69,7 @@ estimaTeta.MixSN = function(y, X, medias, Z, t1, t2, deltaAtual){
   lambda = delta/sqrt(gama)
   sigma =sqrt(delta**2 + gama)
 
-  c(beta = as.matrix(beta), delta = delta, gama = gama, sigma = sigma, lambda = lambda, sigma)
+  c(beta = as.matrix(beta), delta = delta, gama = gama, sigma = sigma, lambda = lambda)
 }
 .S3method("estimaTeta", "MixSN", estimaTeta.MixSN)
 
