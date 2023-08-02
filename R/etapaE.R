@@ -252,7 +252,7 @@ etapaE.MixCenSN = function(y, X, params, medias, args, ...){
 
       M2T = params$params[j,"gama"]/(params$params[j,"delta"]**2+params$params[j,"gama"])
       MT = sqrt(M2T)
-      Mu = M2T*params$params[j,"delta"]*(y-medias[,j])/params$params[j,"gama"]
+      Mu = (y-medias[,j])*params$params[j,"delta"]/(params$params[j,"delta"]**2+params$params[j,"gama"])
 
       moments = mapply(
         function(ic, i){
@@ -284,8 +284,7 @@ etapaE.MixCenSN = function(y, X, params, medias, args, ...){
         , which(phi1), 1:args$m
       )
 
-      #aij = params$params[j,"lambda"]*(y[!phi1] - medias[!phi1,j])/params$params[j,"sigma"]
-      aij = Mu[!phi1]/MT
+      aij = params$params[j,"lambda"]*(y[!phi1] - medias[!phi1,j])/params$params[j,"sigma"]
       p = pnorm(aij)
       p = ifelse(p == 0, .Machine$double.xmin, p)
       tau_gama[!phi1] = (dnorm(aij))/p
@@ -297,16 +296,16 @@ etapaE.MixCenSN = function(y, X, params, medias, args, ...){
 
       e10[!phi1] = (Mu[!phi1] + MT*tau_gama[!phi1])
       try({
-        e10[phi1] = ((M2T*params$params[j,"delta"]/params$params[j,"gama"])*(e01[phi1] - medias[phi1,j]))+MT*tau_gama[phi1]
+        e10[phi1] = ((M2T*params$params[j,"delta"]/params$params[j,"gama"])*(e01[phi1] - medias[phi1, j]))+MT*tau_gama[phi1]
       }, silent = T)
       e20[!phi1] = Mu[!phi1]**2 + M2T + Mu[!phi1]*MT*tau_gama[!phi1]
       try({
-        e20[phi1] = (M2T*params$params[j,"delta"]/params$params[j,"gama"])**2*(e02[phi1] - 2*medias[phi1,j]*e01[phi1] + medias[phi1,j]**2) +
-          (MT**3*params$params[j,"delta"]/params$params[j,"gama"]*(w0[phi1]-medias[phi1,j])*tau_gama[phi1]) + M2T
+        e20[phi1] = (M2T*params$params[j,"delta"]/params$params[j,"gama"])**2*(e02[phi1] - 2*medias[phi1, j]*e01[phi1] + medias[phi1, j]**2) +
+          (MT**3*params$params[j,"delta"]/params$params[j,"gama"]*(w0[phi1]-medias[phi1, j])*tau_gama[phi1]) + M2T
       }, silent = T)
       e11[!phi1] = e01[!phi1]*e10[!phi1]
       try({
-        e11[phi1] = (M2T*params$params[j,"delta"]/params$params[j,"gama"])*(e02[phi1] - medias[phi1,j]*e01[phi1]) +
+        e11[phi1] = (M2T*params$params[j,"delta"]/params$params[j,"gama"])*(e02[phi1] -medias[phi1, j]*e01[phi1]) +
           (MT*w0[phi1]*tau_gama[phi1])
       }, silent = T)
 
@@ -374,8 +373,7 @@ etapaE.MoECenSN = function(y, X, params, medias, args, ...){
         , which(phi1), 1:args$m
       )
 
-      #aij = params$params[j,"lambda"]*(y[!phi1] - medias[!phi1,j])/params$params[j,"sigma"]
-      aij = Mu[!phi1]/MT
+      aij = params$params[j,"lambda"]*(y[!phi1] - medias[!phi1,j])/params$params[j,"sigma"]
       p = pnorm(aij)
       p = ifelse(p == 0, .Machine$double.xmin, p)
       tau_gama[!phi1] = (dnorm(aij))/p
@@ -387,16 +385,16 @@ etapaE.MoECenSN = function(y, X, params, medias, args, ...){
 
       e10[!phi1] = (Mu[!phi1] + MT*tau_gama[!phi1])
       try({
-        e10[phi1] = ((M2T*params$params[j,"delta"]/params$params[j,"gama"])*(e01[phi1] - medias[phi1,j]))+MT*tau_gama[phi1]
+        e10[phi1] = ((M2T*params$params[j,"delta"]/params$params[j,"gama"])*(e01[phi1] - medias[phi1, j]))+MT*tau_gama[phi1]
       }, silent = T)
       e20[!phi1] = Mu[!phi1]**2 + M2T + Mu[!phi1]*MT*tau_gama[!phi1]
       try({
-        e20[phi1] = (M2T*params$params[j,"delta"]/params$params[j,"gama"])**2*(e02[phi1] - 2*medias[phi1,j]*e01[phi1] + medias[phi1,j]**2) +
-              (MT**3*params$params[j,"delta"]/params$params[j,"gama"]*(w0[phi1]-medias[phi1,j])*tau_gama[phi1]) + M2T
+        e20[phi1] = (M2T*params$params[j,"delta"]/params$params[j,"gama"])**2*(e02[phi1] - 2*medias[phi1]*e01[phi1] + medias[phi1, j]**2) +
+              (MT**3*params$params[j,"delta"]/params$params[j,"gama"]*(w0[phi1]-medias[phi1, j])*tau_gama[phi1]) + M2T
       }, silent = T)
       e11[!phi1] = e01[!phi1]*e10[!phi1]
       try({
-        e11[phi1] = (M2T*params$params[j,"delta"]/params$params[j,"gama"])*(e02[phi1] - medias[phi1,j]*e01[phi1]) +
+        e11[phi1] = (M2T*params$params[j,"delta"]/params$params[j,"gama"])*(e02[phi1] -medias[phi1, j]*e01[phi1]) +
                     (MT*w0[phi1]*tau_gama[phi1])
       }, silent = T)
 
@@ -512,7 +510,7 @@ etapaE.MixCenST = function(y, X, params, medias, args, ...){
       e20[phi1] = (MuAux**2)*(e02[phi1] - 2*e01[phi1]*medias[phi1, j]+ e00[phi1]*(medias[phi1, j]**2)) + MuAux*(w0[phi1]-medias[phi1,j])*MT*cv*(R0_F0)+M2T
 
       e11[!phi1] = e10[!phi1]*y[!phi1]
-      e11[phi1] = MuAux*(e02[phi1]-e01[phi1]*medias[phi1,j])+
+      e11[phi1] = MuAux*(e02[phi1]-e01[phi1]*medias[phi1, j])+
         MT*cv*(R0_F0)*w0[phi1]
       return(list(Z, e00, e01, e02, e10, e20, e11))
     })
@@ -629,7 +627,7 @@ etapaE.MoECenST = function(y, X, params, medias, args, ...){
       e20[phi1] = (MuAux**2)*(e02[phi1] - 2*e01[phi1]*medias[phi1, j]+ e00[phi1]*(medias[phi1, j]**2)) + MuAux*(w0[phi1]-medias[phi1,j])*MT*cv*(R0_F0)+M2T
 
       e11[!phi1] = e10[!phi1]*y[!phi1]
-      e11[phi1] = MuAux*(e02[phi1]-e01[phi1]*medias[phi1,j])+
+      e11[phi1] = MuAux*(e02[phi1]-e01[phi1]*medias[phi1, j])+
         MT*cv*(R0_F0)*w0[phi1]
       return(list(Z, e00, e01, e02, e10, e20, e11))
       })
@@ -643,17 +641,3 @@ etapaE.MoECenST = function(y, X, params, medias, args, ...){
   return(U)
 }
 .S3method("etapaE", "MoECenST", etapaE.MoECenST)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
