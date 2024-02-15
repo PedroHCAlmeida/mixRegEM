@@ -90,6 +90,7 @@ regEM = function(y, x, g = 2, ..., tol = 1E-6, family = "MixNormal",
   X = eval(parse(text = family))(X)
 
   paramsAtual = chuteInicial(y, X, args)
+  if(verbose) print(paramsAtual)
   medias = estimaMedia(X, paramsAtual$params, args)
   crit = 1
   it = 0
