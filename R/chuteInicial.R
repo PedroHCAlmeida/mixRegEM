@@ -18,49 +18,48 @@ chuteInicial.MixNormal = function(y, X, args){
                        function(x, grupos) lapply(split(x, grupos), matrix, ncol=dim(as.matrix(x))[2]),
                        grupos = grupos_novo)
 
-  medias = estimaMedia(X, params, args)
-
-  if(args$chuteMahalanobis){
-
-    if(is.null(args$maxChuteIter)) args$maxChuteIter = 10
-    if(is.null(args$tol_chute)) args$tol_chute = 0.01
-    diff_grupos = 1
-    i = 1
-    while(diff_grupos > args$tol_chute & i < args$maxChuteIter){
-      i = i+1
-      dma = do.call(
-        cbind,
-        lapply(1:args$g, function(i) dMahalanobis(y, medias[,i], params[i, "sigma"]))
-      )
-
-      grupos_new = apply(dma, 1, which.min)
-      diff_grupos = 1-mean(grupos_new == grupos_novo)
-
-      if(min(table(grupos_new))/args$n <= 0.1){
-        i = args$maxChuteIter
-        break
-      }
-
-      dadosGrupos = lapply(list("X" = X, "y" = y),
-                           function(x, grupos) lapply(split(x, grupos), matrix, ncol=dim(as.matrix(x))[2]),
-                           grupos = grupos_new)
-
-      params = do.call(rbind, mapply(estimaTeta.Normal,
-                                     dadosGrupos$y,
-                                     dadosGrupos$X,
-                                     SIMPLIFY = F))
-      print(params)
-
-      medias = estimaMedia(X, params, args)
-      grupos_novo = grupos_new
-    }
-  }
-
-
   params = do.call(rbind, mapply(estimaTeta.Normal,
                                  dadosGrupos$y,
                                  dadosGrupos$X,
                                  SIMPLIFY = F))
+
+  medias = estimaMedia(X, params, args)
+
+  if(args$chuteMahalanobis){
+    try({
+      if(is.null(args$maxChuteIter)) args$maxChuteIter = 10
+      if(is.null(args$tol_chute)) args$tol_chute = 0.01
+      diff_grupos = 1
+      i = 1
+      while(diff_grupos > args$tol_chute & i < args$maxChuteIter){
+        i = i+1
+        dma = do.call(
+          cbind,
+          lapply(1:args$g, function(i) dMahalanobis(y, medias[,i], params[i, "sigma"]))
+        )
+
+        grupos_new = apply(dma, 1, which.min)
+        diff_grupos = 1-mean(grupos_new == grupos_novo)
+
+        if(min(table(grupos_new))/args$n <= 0.1){
+          i = args$maxChuteIter
+          break
+        }
+
+        dadosGrupos = lapply(list("X" = X, "y" = y),
+                             function(x, grupos) lapply(split(x, grupos), matrix, ncol=dim(as.matrix(x))[2]),
+                             grupos = grupos_new)
+
+        params = do.call(rbind, mapply(estimaTeta.Normal,
+                                       dadosGrupos$y,
+                                       dadosGrupos$X,
+                                       SIMPLIFY = F))
+
+        medias = estimaMedia(X, params, args)
+        grupos_novo = grupos_new
+      }
+    })
+  }
 
   P = prop.table(table(grupos))
 
@@ -124,7 +123,6 @@ chuteInicial.MoENormal = function(y, X, args, initGrupo = "KMeans"){
                                      dadosGrupos$y,
                                      dadosGrupos$X,
                                      SIMPLIFY = F))
-      print(params)
 
       medias = estimaMedia(X, params, args)
       grupos_novo = grupos_new
@@ -195,7 +193,7 @@ chuteInicial.MixT = function(y, X, args, initGrupo = "KMeans"){
                                      dadosGrupos$y,
                                      dadosGrupos$X,
                                      SIMPLIFY = F))
-      print(params)
+
 
       medias = estimaMedia(X, params, args)
       grupos_novo = grupos_new
@@ -265,7 +263,7 @@ chuteInicial.MoET = function(y, X, args, initGrupo = "KMeans"){
                                      dadosGrupos$y,
                                      dadosGrupos$X,
                                      SIMPLIFY = F))
-      print(params)
+
 
       medias = estimaMedia(X, params, args)
       grupos_novo = grupos_new
@@ -337,7 +335,7 @@ chuteInicial.MixSN = function(y, X, args){
                                      dadosGrupos$y,
                                      dadosGrupos$X,
                                      SIMPLIFY = F))
-      print(params)
+
 
       medias = estimaMedia(X, params, args)
       grupos_novo = grupos_new
