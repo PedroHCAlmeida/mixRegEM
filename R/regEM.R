@@ -15,7 +15,8 @@
 #' @return resultados finais
 #' @export
 regEM = function(y, x, g = 2, ..., tol = 1E-6, family = "MixNormal",
-                 grupoReal = NULL, max_iter = 1000, min_iter = 1, verbose = F, showSE = F){
+                 grupoReal = NULL, max_iter = 1000, min_iter = 1, verbose = F,
+                 showSE = F, aitken = T, mcFirst = F){
 
   if(length(g) > 1 | length(family) > 1)
     return(
@@ -48,7 +49,16 @@ regEM = function(y, x, g = 2, ..., tol = 1E-6, family = "MixNormal",
   args$g = g
   args$verbose = verbose
   args$tol = tol
+  if(is.null(args$chuteMahalanobis)) args$chuteMahalanobis = F
   if(!is.null(args$lambda) & length(args$lambda) == 1) args$lambda = rep(args$lambda, g)
+  if(is.null(args$Pequal)) args$Pequal = F
+  if(is.null(args$cluster_args) & (is.null(args$initGrupo))){
+    args$cluster_args = list(
+      "iter.max" = 50,
+      "nstart" = 1,
+      "algorithm" = "Hartigan-Wong"
+    )
+  }
 
   X = cbind(rep(1, args$n), x)
   gc(x, verbose = F)
@@ -87,7 +97,7 @@ regEM = function(y, x, g = 2, ..., tol = 1E-6, family = "MixNormal",
   ll[3] = vero(y, medias, paramsAtual, args)
   ll[2] = ll[3]
 
-  while(((crit > tol) & (it < max_iter)) | (it < min_iter)){
+  while(((crit > tol) & (it < max_iter)) || (it < min_iter)){
 
     ll = c(ll[-1], 0)
 
@@ -117,9 +127,12 @@ regEM = function(y, x, g = 2, ..., tol = 1E-6, family = "MixNormal",
       crit = abs(llInf - ll[3])
     }
 
+    if(!aitken) crit = abs(ll[2] - ll[3])/abs(ll[3])
+
     if(verbose){
       print(paramsNovo$params)
       cat('Loglikelihood =', ll[3], ' Critério:', crit, '\n')
+      print(ll)
     }
     it = it+1
 
@@ -137,10 +150,13 @@ regEM = function(y, x, g = 2, ..., tol = 1E-6, family = "MixNormal",
   ll[3] = vero(y, medias, paramsAtual, args)
 
   Par = c(paramsAtual$params[,!colnames(paramsAtual$params) %in% c("delta", "gama")])
-  nPar = length(Par[!is.na(Par)])-length(args$lambda)-length(args$nuFixo)
+  nPar = length(Par[!is.na(Par)])-sum(args$lambda==0)
 
-  if(is.null(args$nuFixo) & !is.null(args$nuIgual)){
+  if(is.null(args$nuFixo) & !is.null(args$nuIgual) & grepl("t|T", family)){
     if(args$nuIgual == T) nPar = nPar-args$g+1
+  }
+  if(!is.null(args$nuFixo) & grepl("t|T", family)){
+    nPar = nPar-args$g+length(unique(nu))
   }
 
   if(grepl("Mix", family)) nPar = nPar+args$g-1
@@ -154,7 +170,7 @@ regEM = function(y, x, g = 2, ..., tol = 1E-6, family = "MixNormal",
   ordem = rank(-props)
   grupos_novo = ordem[gruposEM]
 
-  if(all(gruposEM != grupos_novo)){
+  if(all(gruposEM != grupos_novo) & mcFirst){
     paramsAtual$params = paramsAtual$params[ordem,]
     paramsAtual$P = matrix(paramsAtual$P, ncol = args$g)[,ordem]
     U = lapply(U, function(x) matrix(x, ncol = args$g)[,ordem])

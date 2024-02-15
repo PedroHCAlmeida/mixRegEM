@@ -17,7 +17,7 @@ estimaTeta.MixNormal = function(y, X, Z){
 
   X = Matrix::Matrix(X, sparse = T)
   beta = solve(Matrix::t(X)%*%Matrix::Diagonal(x = Z)%*%X)%*%(Matrix::t(X)%*%Matrix::Matrix(Z*y))
-  sigma = sqrt(sum(Z*(y - (X%*%beta))^2)/sum(Z))
+  sigma = sqrt(sum(Z*(y - as.matrix(X%*%beta))^2)/sum(Z))
 
   c(beta = as.matrix(beta), sigma = sigma)
 }
@@ -57,14 +57,13 @@ estimaTeta.MoET = function(y, X, Z, K, R, alpha, P){
 
 estimaTeta.MixSN = function(y, X, medias, Z, t1, t2, deltaAtual){
 
-  b = -sqrt(2/pi)
-
   X = Matrix::Matrix(X, sparse = T)
 
   beta = solve(Matrix::t(X)%*%Matrix::Diagonal(x = Z)%*%X)%*%(Matrix::t(X)%*%Matrix::Matrix(Z*(y-(deltaAtual*t1))))
-  res = (y-X%*%beta)
-  delta = sum(t1*res)/sum(t2)
-  gama = sum(Z*(res**2)- (2*delta*res*t1) + (delta**2)*t2)/sum(Z)
+  medias = (X%*%beta)
+  res = y-as.numeric(medias)
+  delta = sum(Z*t1*res)/sum(Z*t2)
+  gama = sum(Z*((res**2)-(2*delta*res*t1) + (delta**2)*t2))/sum(Z)
 
   lambda = delta/sqrt(gama)
   sigma =sqrt(delta**2 + gama)
@@ -88,11 +87,11 @@ estimaTeta.MixCenSN = function(y, X, Z, e01, e02, e10, e20, e11, delta, P, lambd
     }
   }
 
-  delta = sum(Z*(e11-e10*medias))/sum(Z*e20)
-
   gama = sum(Z*(e02-2*e01*medias+medias**2+(delta**2)*e20-2*delta*e11+2*delta*e10*medias))/sum(Z)
 
-  if(gama <= 0){
+  if(!is.finite(gama))
+
+  if(gama <= 0 | !is.finite(gama)){
     gama = .Machine$double.xmin
   }
 
@@ -121,7 +120,7 @@ estimaTeta.MoECenSN = function(y, X, R, Z, e01, e02, e10, e20, e11, delta, alpha
 
   gama = sum(Z*(e02-2*e01*medias+medias**2+(delta**2)*e20-2*delta*e11+2*delta*e10*medias))/sum(Z)
 
-  if(gama <= 0){
+  if(gama <= 0 | !is.finite(gama)){
     gama = .Machine$double.xmin
   }
 

@@ -99,7 +99,7 @@ predictMix.MixCenSN = function(reg, x, r, class = T, grupos = NULL, real = NULL)
   args$n = nrow(as.matrix(x))
   args$g = reg$g
   X = cbind(rep(1, args$n), as.matrix(x))
-  X = MixCenST(X)
+  X = MixCenSN(X)
 
   P = reg$P
   mu = estimaMedia(X, reg$Parametros, args)
@@ -134,7 +134,7 @@ predictMix.MoECenSN = function(reg, x, r, class = T, grupos = NULL, real = NULL)
   X = cbind(rep(1, args$n), as.matrix(x))
   R = cbind(rep(1, args$n), as.matrix(r))
 
-  X = MoECenST(X)
+  X = MoECenSN(X)
 
   alpha = matrix(reg$Parametros[,startsWith(colnames(reg$Parametros), "alpha")],
                  nrow = args$g
@@ -182,16 +182,23 @@ predictMix.MoECenST = function(reg, x, r, class = T, grupos = NULL, real = NULL)
                  nrow = args$g
   )
 
-  P = matrizP(matrix(alpha[-args$g,], nrow=ncol(R), byrow = T), R)
+  naGrupo = which(is.na(alpha[,1]))
+  P_aux = matrizP(matrix(alpha[-naGrupo,], nrow=ncol(R), byrow = T), R)
+
+  order = 1:args$g-as.numeric(1:args$g>naGrupo)
+  order[naGrupo] = args$g
+
+  P = P_aux[,order]
+
   mu = estimaMedia(X, reg$Parametros, args)
   medias = sapply(
     1:args$g,
     function(i) mu[,i]-b*reg$Parametros[i,"delta"]
   )
 
+  if(is.null(grupos)) grupos = apply(P, 1, which.max)
   if(!class) y = apply(P*medias, 1, sum)
   else{
-    if(is.null(grupos)) grupos = apply(P, 1, which.max)
     y = sapply(1:args$n,
                function(i) medias[i, grupos[i]])
   }
@@ -255,7 +262,7 @@ predictMix.MoECenSN = function(reg, x, r, class = T, grupos = NULL, real = NULL,
 }
 .S3method("predictMix", "MoECenSN", predictMix.MoECenSN)
 
-predictMix.MoECenST = function(reg, x, r, class = T, grupos = NULL, real = NULL){
+predictMix.MoECenST = function(reg, x, r, class = T, grupos = NULL, real = NULL, estimator = "mean"){
 
   b = -sqrt(2/pi)
 
@@ -283,7 +290,10 @@ predictMix.MoECenST = function(reg, x, r, class = T, grupos = NULL, real = NULL)
   else{
     if(is.null(grupos)) grupos = apply(P, 1, which.max)
     y = sapply(1:args$n,
-               function(i) medias[i, grupos[i]])
+               function(i){
+                 if(estimator == "mean") return(medias[i, grupos[i]])
+                 else return(mu[i, grupos[i]])
+               })
   }
   if(!is.null(real)){
     res = y-real

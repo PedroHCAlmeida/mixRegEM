@@ -57,6 +57,21 @@ vero.MixSN = function(y, medias, params, args){
 }
 .S3method("vero", "MixSN", vero.MixSN)
 
+vero.MixST = function(y, medias, params, args){
+  sum(log(dMix.MixST(
+    y = y,
+    medias = medias,
+    beta = params$params[, startsWith(colnames(params$params), "beta")],
+    sigma = params$params[,"sigma"],
+    lambda = params$params[, "lambda"],
+    delta = params$params[, "delta"],
+    P = params$P,
+    nu = params$params[, "nu"],
+    args = args
+  )))
+}
+.S3method("vero", "MixST", vero.MixST)
+
 vero.MoESN = function(y, medias, params, args){
   sum(log(dMix.MoESN(
     y = y,

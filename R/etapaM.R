@@ -71,7 +71,7 @@ etapaM.MixT = function(y, X, U, params, args){
   nu = optim(params$params[,"nu"],
              fn = Q,
              method = "L-BFGS-B",
-             lower = 0.001,
+             lower = 1,
              upper = 30,
              control = list(fnscale = -1)
              )$par
@@ -148,6 +148,14 @@ etapaM.MoEST = function(y, X, U, params, args){
     )
   )
 
+  if(!is.null(args$varEqual)){
+    if(args$varEqual){
+      paramsNovo[,"gama"] = sum(apply(U$Z, 1, function(x) x*paramsNovo[,"gama"]))/args$n
+      paramsNovo[,"lambda"] = paramsNovo[,"delta"]/sqrt(paramsNovo[,"gama"])
+      paramsNovo[,"sigma"] = sqrt(paramsNovo[,"delta"]**2 + paramsNovo[,"gama"])
+    }
+  }
+
 
   if(any(is.nan(c(paramsNovo)))){
     return(params)
@@ -185,6 +193,7 @@ etapaM.MoEST = function(y, X, U, params, args){
       nu = optimize(
         Q,
         c(1, 30),
+
         maximum = T
       )$maximum
       nu = rep(nu, args$g)
@@ -220,6 +229,9 @@ etapaM.MixSN = function(y, X, U, params, args){
 
 
   P = colMeans(U$Z)
+  if(args$Pequal){
+    P = rep(1/args$g, args$g)
+  }
 
   return(list(params = paramsNovo, P = P))
 }
@@ -354,6 +366,7 @@ etapaM.MixCenST = function(y, X, U, params, args){
       nu = optimize(
         Q,
         c(1, 30),
+
         maximum = T
       )$maximum
       nu = rep(nu, args$g)
@@ -430,6 +443,7 @@ etapaM.MoECenST = function(y, X, U, params, args){
       nu = optimize(
         Q,
         c(1, 30),
+
         maximum = T
       )$maximum
       nu = rep(nu, args$g)

@@ -86,76 +86,154 @@ estimaSe.MixT = function(reg, y, X, params = NULL, args = NULL, U = NULL, weight
 }
 .S3method("estimaSe", "MixT", estimaSe.MixT)
 
-estimaSe.MoET = function(reg, y, X, params = NULL, args = NULL, U = NULL, weights = 1, ...){
+estimaSe.MoESN = function(reg, y, X, r, params = NULL, args = NULL, weights = 1, ...){
 
   if(is.null(params)){
     params = reg$Parametros |> t()
 
-    U = reg$U
-
     X = cbind(rep(1, nrow(X)), X)
     args = reg$args
-  }
-
-  lapply(1:args$g,
-         function(j) estimaSe.Normal(y, X, params[j,], args = args, weights = U$Z[,j]*U$K[,j])
-  )
-}
-.S3method("estimaSe", "MoET", estimaSe.MoET)
-
-estimaSe.MoESN = function(reg, y, X, params = NULL, args = NULL, weights = 1, ...){
-
-  if(is.null(params)){
-    params = reg$Parametros |> t()
-
-    U = reg$U
-
-    X = cbind(rep(1, nrow(X)), X)
-    args = reg$args
-
-    R = cbind(rep(1, args$n), as.matrix(R))
+    R = cbind(rep(1, args$n), as.matrix(r))
     P = reg$P
   }
 
-  dMoeSE = function(yi, Xi, beta, sigma, lambda, nu, P, args){
-    sum(log(sapply(1:args$g, function(j) P[j]*sn::dsn(yi, Xi%*%beta[j,], sigma[j], lambda[j]))))
+  dMoE = function(y, X, beta, sigma, lambda, P, args, nu){
+    sum(log(sapply(1:args$g, function(j) P[,j]*sn::dsn(y, X%*%beta[j,], sigma[j], lambda[j]))))
   }
 
-  veroSE = function(theta, yi, Xi, Ri, args){
+  veroSE = function(theta, yi, Xi, phi, args, R, naGrupo){
 
-    beta = matrix(theta[1:(args$p*args$g)], ncol = args$p, byrow = F)
-    sigma = theta[(args$p*args$g+1):((args$p*args$g)+args$g)]
-    lambda = theta[(((args$p*args$g)+args$g)+1):((args$p*args$g)+2*args$g)]
-    alpha = theta[((args$p*args$g)+2*args$g+1):length(theta)]
+    beta =  matrix(theta[1:(args$g*args$p)], nrow = args$g)
+    sigma =  theta[((args$g*args$p)+1):((args$g*args$p)+args$g)]
 
-    P = matrizP(matrix(alpha, ncol = args$g-1, byrow = T), Ri)
-    return(dMoeSE(yi, Xi, beta, sigma, lambda, nu, P, args))
-  }
-
-  theta = matrix(params[, -c(args$p+1, args$p+2)], ncol = args$g)
-  if(!is.null(args$lambda)) theta = theta[-which(rownames(theta) == "lambda"), ]
-  theta_total = do.call(rbind, lapply(1:ncol(theta), function(i) cbind(theta[,i])))
-
-  InfObs = lapply(
-    1:args$n,
-    function(i){
-      score = numDeriv::grad(veroSE, theta_total[!is.na(theta_total)], yi = y[i], Xi = X[i,], Ri = R[i,], args = args)
-      score %*% t(score)
+    if(is.null(args$lambda)){
+      lambda = theta[((args$g*args$p)+1+args$g):((args$g*args$p)+2*args$g)]
+      alpha = theta[((args$g*args$p)+1+2*args$g):((args$g*args$p)+2*args$g+args$k*(args$g-1))]
+    } else{
+      lambda = args$lambda
+      alpha = theta[((args$g*args$p)+1+args$g):((args$g*args$p)+args$g+args$k*(args$g-1))]
     }
+    P_aux = matrizP(alpha, R)
+    P = P_aux
+    P[,!1:args$g %in% naGrupo] = P_aux[,1:(args$g-1)]
+    P[,naGrupo] = P_aux[,args$g]
+
+    return(
+      dMoE(yi, Xi, beta, sigma, lambda, args = args, P = P)
+    )
+  }
+
+  theta = as.matrix(t(params[,-which(colnames(params) %in% c("delta", "gama"))]))
+  if(!is.null(args$lambda)) theta = theta[-which(rownames(theta) == "lambda"), ]
+
+  theta_total = c(t(theta))
+  theta_final = theta_total[!is.na(theta_total)]
+
+  naGrupo = which(params |> apply(1, function(x) sum(is.na(x))) > 0)
+
+  H = numDeriv::hessian(
+    function(x) veroSE(x, yi = y, Xi = X, phi = args$phi, args = args, R = R, naGrupo = naGrupo),
+    theta_final
   )
 
-  SE = sqrt(diag(solve(Reduce("+", InfObs))))
-  names(SE) = unlist(sapply(colnames(theta), function(x) paste0(x, 1:ifelse(startsWith(x, "alpha"), args$g-1, args$g))))
+  SE = theta_total
+  SE[!is.na(theta_total)] = sqrt(diag(solve(-H)))
+  if(!all(is.finite(SE[!is.na(theta_total)]))) try({SE[!is.na(theta_total)] = HelpersMG::SEfromHessian(-H)})
 
-  estat = theta_total[!is.na(theta_total)]/SE
+  names(SE) = rownames(theta) |>
+    sapply(function(x) paste0(rep(x, args$g), 1:args$g))
+
+  estat = theta_total/SE
   valorP = round(1 - pnorm(abs(estat)), 4)
   names(valorP) = names(SE)
+
+  valorP[!grepl("beta|alpha|lambda", names(SE))] = NA
 
   se = cbind(SE, valorP)
 
   return(se)
 }
 .S3method("estimaSe", "MoESN", estimaSe.MoESN)
+
+estimaSe.MoET = function(reg, y, X, params = NULL, args = NULL, U = NULL, weights = 1, ...){
+  estimaSe.MoEST(reg, y, X, params, args, U, weights, ...)
+}
+.S3method("estimaSe", "MoET", estimaSe.MoET)
+
+estimaSe.MoEST = function(reg, y, X, r, params = NULL, args = NULL, weights = 1, ...){
+
+  if(is.null(params)){
+    params = reg$Parametros |> t()
+
+    X = cbind(rep(1, nrow(X)), X)
+    args = reg$args
+    R = cbind(rep(1, args$n), as.matrix(r))
+    P = reg$P
+  }
+
+  dMoE = function(y, X, beta, sigma, lambda, P, args, nu){
+    sum(log(rowSums(sapply(1:args$g, function(j) P[,j]*sn::dst(y, X%*%beta[j,], sigma[j], lambda[j], nu = nu[j])))))
+  }
+
+  veroSE = function(theta, yi, Xi, phi, args, R, naGrupo, nu){
+
+    beta =  matrix(theta[1:(args$g*args$p)], nrow = args$g)
+    sigma =  theta[((args$g*args$p)+1):((args$g*args$p)+args$g)]
+
+    if(is.null(args$lambda)){
+      lambda = theta[((args$g*args$p)+1+args$g):((args$g*args$p)+2*args$g)]
+      alpha = matrix(
+        theta[((args$g*args$p)+1+2*args$g):((args$g*args$p)+2*args$g+args$k*(args$g-1))],
+        nrow = args$g-1
+      )
+    } else{
+      lambda = args$lambda
+      alpha = matrix(
+        theta[((args$g*args$p)+1+args$g):((args$g*args$p)+args$g+args$k*(args$g-1))],
+        nrow = args$g-1
+        )
+    }
+    P_aux = matrizP(t(alpha), R)
+    P = P_aux
+    P[,!1:args$g %in% naGrupo] = P_aux[,1:(args$g-1)]
+    P[,naGrupo] = P_aux[,args$g]
+
+    return(
+      dMoE(yi, Xi, beta, sigma, lambda, args = args, P = P, nu = nu)
+    )
+  }
+
+  theta = as.matrix(t(params[,-which(colnames(params) %in% c("delta", "gama", "nu"))]))
+  if(!is.null(args$lambda)) theta = theta[-which(rownames(theta) == "lambda"), ]
+
+  theta_total = c(t(theta))
+  theta_final = theta_total[!is.na(theta_total)]
+
+  naGrupo = which(params |> apply(1, function(x) sum(is.na(x))) > 0)
+
+  H = numDeriv::hessian(
+    function(x) veroSE(x, yi = y, Xi = X, phi = args$phi, args = args, R = R, naGrupo = naGrupo, nu = params[,"nu"]),
+    theta_final
+  )
+
+  SE = theta_total
+  SE[!is.na(theta_total)] = sqrt(diag(solve(-H)))
+  if(!all(is.finite(SE[!is.na(theta_total)]))) try({SE[!is.na(theta_total)] = HelpersMG::SEfromHessian(-H)})
+
+  names(SE) = rownames(theta) |>
+    sapply(function(x) paste0(rep(x, args$g), 1:args$g))
+
+  estat = theta_total/SE
+  valorP = round(1 - pnorm(abs(estat)), 4)
+  names(valorP) = names(SE)
+
+  valorP[!grepl("beta|alpha|lambda", names(SE))] = NA
+
+  se = cbind(SE, valorP)
+
+  return(se)
+}
+.S3method("estimaSe", "MoEST", estimaSe.MoEST)
 
 estimaSe.MixCenSN = function(reg, y, X, params = NULL, args = NULL, U = NULL, weights = 1, ...){
 
@@ -183,14 +261,19 @@ estimaSe.MixCenSN = function(reg, y, X, params = NULL, args = NULL, U = NULL, we
              rowSums())
     }
 
-  veroSE = function(theta, yi, Xi, phi, args, P){
+  veroSE = function(theta, yi, Xi, phi, args){
 
-    theta = matrix(theta, byrow = T, nrow = args$g)
+    beta =  matrix(theta[1:(args$g*args$p)], nrow = args$g)
+    sigma =  theta[((args$g*args$p)+1):((args$g*args$p)+args$g)]
 
-    beta = theta[,1:(args$p)]
-    sigma = theta[, args$p+1]
-    if(is.null(args$lambda)) lambda = theta[,args$p+2]
-    else lambda = args$lambda
+    if(is.null(args$lambda)){
+      lambda = theta[((args$g*args$p)+1+args$g):((args$g*args$p)+2*args$g)]
+    } else{
+      lambda = args$lambda
+    }
+
+    p = theta[(length(theta)-args$g+2):length(theta)]
+    P = c(p, 1-sum(p))
 
     return(
       sum(log(dMixCen(yi, Xi, beta, sigma, lambda, P, args)))
@@ -200,24 +283,27 @@ estimaSe.MixCenSN = function(reg, y, X, params = NULL, args = NULL, U = NULL, we
   theta = as.matrix(t(params[,-which(colnames(params) %in% c("delta", "gama"))]))
   if(!is.null(args$lambda)) theta = theta[-which(rownames(theta) == "lambda"), ]
 
-  theta_total = do.call(rbind, lapply(1:ncol(theta), function(i) cbind(theta[,i])))
-
-  theta_final = theta_total[!is.na(theta_total)]
+  theta_total = c(t(theta))
+  theta_final = c(theta_total[!is.na(theta_total)], P[1:(args$g-1)])
 
   H = numDeriv::hessian(
-    function(x) veroSE(x, yi = y, Xi = X, phi = args$phi, args = args, P = P),
-    as.vector(theta_total[!is.na(theta_total)])
+    function(x) veroSE(x, yi = y, Xi = X, phi = args$phi, args = args),
+    as.vector(theta_final)
     )
 
-  SE = sqrt(-diag(solve(H)))
-  names(SE) = paste0(rep(rownames(theta), args$g),
-                     sapply(1:args$g, function(x) rep(x, length(rownames(theta)))))
+  SE = sqrt(diag(solve(-H)))
+  if(!all(is.finite(SE))) try({SE = HelpersMG::SEfromHessian(-H)})
+
+  names(SE) = c(rownames(theta) |>
+      sapply(function(x) paste0(rep(x, args$g), 1:args$g)),
+    paste0("p", 1:(args$g-1))
+  )
 
   estat = (theta_total[!is.na(theta_total)]-theta_total[!is.na(theta_total)])/SE
   valorP = round(1 - pnorm(abs(estat)), 4)
   names(valorP) = names(SE)
 
-  valorP[!grepl("beta", names(SE))] = NA
+  valorP[!grepl("beta|alpha|lambda", names(SE))] = NA
 
   se = cbind(SE, valorP)
 
@@ -225,7 +311,7 @@ estimaSe.MixCenSN = function(reg, y, X, params = NULL, args = NULL, U = NULL, we
 }
 .S3method("estimaSe", "MixCenSN", estimaSe.MixCenSN)
 
-estimaSe.MoECenSN = function(reg, y, X, params = NULL, args = NULL, weights = 1, ...){
+estimaSe.MoECenSN = function(reg, y, X, r, params = NULL, args = NULL, weights = 1, ...){
 
   if(is.null(params)){
     params = reg$Parametros |> t()
@@ -235,7 +321,7 @@ estimaSe.MoECenSN = function(reg, y, X, params = NULL, args = NULL, weights = 1,
     X = cbind(rep(1, nrow(X)), X)
     args = reg$args
 
-    R = cbind(rep(1, args$n), as.matrix(R))
+    R = cbind(rep(1, args$n), as.matrix(r))
     P = reg$P
   }
 
@@ -253,17 +339,23 @@ estimaSe.MoECenSN = function(reg, y, X, params = NULL, args = NULL, weights = 1,
              rowSums())
   }
 
-  veroSE = function(theta, yi, Xi, phi, args, P){
+  veroSE = function(theta, yi, Xi, phi, args, R, naGrupo){
 
-    theta = matrix(theta, byrow = T, nrow = args$g)
+    beta =  matrix(theta[1:(args$g*args$p)], nrow = args$g)
+    sigma =  theta[((args$g*args$p)+1):((args$g*args$p)+args$g)]
 
-    beta = theta[,1:(args$p)]
-    sigma = theta[, args$p+1]
-    alpha = theta[,(args$p+2):ncol(theta)]
-    if(is.null(args$lambda)) lambda = theta[,args$p+2]
-    else lambda = args$lambda
+    if(is.null(args$lambda)){
+      lambda = theta[((args$g*args$p)+1+args$g):((args$g*args$p)+2*args$g)]
+      alpha = theta[((args$g*args$p)+1+2*args$g):((args$g*args$p)+2*args$g+args$k*(args$g-1))]
+    } else{
+      lambda = args$lambda
+      alpha = theta[((args$g*args$p)+1+args$g):((args$g*args$p)+args$g+args$k*(args$g-1))]
+    }
 
-    P = matrizP(matrix(alpha, ncol = args$g-1, byrow = T), Ri)
+    P_aux = matrizP(alpha, R)
+    P = P_aux
+    P[,!1:args$g %in% naGrupo] = P_aux[,1:(args$g-1)]
+    P[,naGrupo] = P_aux[,args$g]
 
     return(
       sum(log(dMoECen(yi, Xi, beta, sigma, lambda, P, args)))
@@ -273,23 +365,32 @@ estimaSe.MoECenSN = function(reg, y, X, params = NULL, args = NULL, weights = 1,
   theta = as.matrix(t(params[,-which(colnames(params) %in% c("delta", "gama"))]))
   if(!is.null(args$lambda)) theta = theta[-which(rownames(theta) == "lambda"), ]
 
-  theta_total = do.call(rbind, lapply(1:ncol(theta), function(i) cbind(theta[,i])))
+  theta_total = c(t(theta))
   theta_final = theta_total[!is.na(theta_total)]
 
+  naGrupo = which(params |> apply(1, function(x) sum(is.na(x))) > 0)
   H = numDeriv::hessian(
-    function(x) veroSE(x, yi = y, Xi = X, phi = args$phi, args = args, P = P),
-    as.vector(theta_total[!is.na(theta_total)])
+    function(x) veroSE(x, yi = y, Xi = X, phi = args$phi, args = args, R = R, naGrupo = naGrupo),
+    theta_final
   )
 
-  SE = sqrt(-diag(solve(H)))
-  names(SE) = paste0(rep(rownames(theta), args$g),
-                     sapply(1:args$g, function(x) rep(x, length(rownames(theta)))))
+  SE = theta_total
+  SE[!is.na(theta_total)] = sqrt(diag(solve(-H)))
+  if(!all(is.finite(SE))) try({SE[!is.na(theta_total)] = HelpersMG::SEfromHessian(-H)})
 
-  estat = theta_total[!is.na(theta_total)]/SE
+
+  SE = theta_total
+  SE[!is.na(theta_total)] = sqrt(diag(solve(-H)))
+  if(!all(is.finite(SE[!is.na(theta_total)]))) try({SE[!is.na(theta_total)] = HelpersMG::SEfromHessian(-H)})
+
+  names(SE) = rownames(theta) |>
+    sapply(function(x) paste0(rep(x, args$g), 1:args$g))
+
+  estat = theta_total/SE
   valorP = round(1 - pnorm(abs(estat)), 4)
   names(valorP) = names(SE)
 
-  valorP[!grepl("beta", names(SE))] = NA
+  valorP[!grepl("beta|alpha|lambda", names(SE))] = NA
 
   se = cbind(SE, valorP)
 
@@ -310,55 +411,67 @@ estimaSe.MixCenST = function(reg, y, X, params = NULL, args = NULL, U = NULL, we
 
   dMixCen = function(yi, Xi, beta, sigma, lambda, P, args, nu){
 
+    medias = apply(beta, 1, function(j) Xi%*%j)
     phi1 = (args$phi[,1] == 1)
     return(sapply(1:args$g,
                   function(j){
-                    medias = (Xi) %*% beta[j,]
                     total = numeric(args$n)
-                    total[!phi1] = P[j]*sn::dst(x = y[!phi1], xi = medias[!phi1], omega = sigma[j], alpha = lambda[j], nu = nu[j])
-                    total[phi1] = P[j]*(sn::pst(args$c2,  medias[phi1], sigma[j], lambda[j], nu = nu[j])-sn::pst(args$c1, medias[phi1], sigma[j],  lambda[j], nu = nu[j]))
+                    total[!phi1] = P[j]*sn::dst(x = y[!phi1], xi = medias[!phi1, j], omega = sigma[j], alpha = lambda[j], nu = nu[j])
+                    total[phi1] = P[j]*(sn::pst(args$c2,  medias[phi1,j], sigma[j], lambda[j], nu[j])-sn::pst(args$c1, medias[phi1,j], sigma[j],  lambda[j], nu[j]))
                     total
                   }) |>
              rowSums())
   }
 
-  veroSE = function(theta, yi, Xi, phi, args, P){
+  veroSE = function(theta, yi, Xi, phi, args, P, nu){
 
-    theta = matrix(theta, byrow = T, nrow = args$g)
+    beta =  matrix(theta[1:(args$g*args$p)], nrow = args$g)
+    sigma =  theta[((args$g*args$p)+1):((args$g*args$p)+args$g)]
 
-    beta = theta[,1:(args$p)]
-    sigma = theta[, args$p+1]
-    if(is.null(args$lambda)) lambda = theta[,args$p+2]
-    else lambda = args$lambda
+    if(is.null(args$lambda)){
+      lambda = theta[((args$g*args$p)+1+args$g):((args$g*args$p)+2*args$g)]
+    } else{
+      lambda = args$lambda
+    }
+    p = theta[(length(theta)-args$g+2):length(theta)]
+    P = c(p, 1-sum(p))
 
-    nu = theta[,ncol(theta)]
-
-    return(
-      sum(log(dMixCen(yi, Xi, beta, sigma, lambda, P, args, nu = nu)))
-    )
+    #nu = theta[(length(theta)-args$g+1):length(theta)]
+    l = sum(log(dMixCen(yi = yi, Xi = Xi, beta = beta, sigma = sigma, lambda = lambda, P = P, args = args, nu = nu)))
+    return(l)
   }
 
-  theta = as.matrix(t(params[,-which(colnames(params) %in% c("delta", "gama"))]))
+  theta = as.matrix(t(params[,-which(colnames(params) %in% c("delta", "gama", "nu"))]))
   if(!is.null(args$lambda)) theta = theta[-which(rownames(theta) == "lambda"), ]
 
-  theta_total = do.call(rbind, lapply(1:ncol(theta), function(i) cbind(theta[,i])))
-
-  theta_final = theta_total[!is.na(theta_total)]
+  theta_total = c(t(theta))
+  theta_final = c(theta_total[!is.na(theta_total)], P[1:(args$g-1)])
 
   H = numDeriv::hessian(
-    function(x) veroSE(x, yi = y, Xi = X, phi = args$phi, args = args, P = P),
-    as.vector(theta_total[!is.na(theta_total)])
+    function(x) veroSE(x, yi = y, Xi = X, phi = args$phi, args = args, P = P, nu = params[,"nu"]),
+    as.vector(theta_final)
   )
 
-  SE = sqrt(-diag(solve(H)))
-  names(SE) = paste0(rep(rownames(theta), args$g),
-                     sapply(1:args$g, function(x) rep(x, length(rownames(theta)))))
+  SE = sqrt(diag(solve(-H)))
+  if(!all(is.finite(SE))) try({SE = HelpersMG::SEfromHessian(-H)})
 
-  estat = theta_total[!is.na(theta_total)]/SE
+  # if(!is.null(args$nuIgual)){
+  #   if(args$nuIgual){
+  #     SE = c(SE, rep(SE[length(SE)], args$g-1))
+  #     theta_final = c(theta_final, rep(theta_final[length(theta_final)], args$g-1))
+  #   }
+  # }
+
+  names(SE) = c(rownames(theta) |>
+    sapply(function(x) paste0(rep(x, args$g), 1:args$g)),
+    paste0("p", 1:(args$g-1))
+    )
+
+  estat = theta_final/SE
   valorP = round(1 - pnorm(abs(estat)), 4)
   names(valorP) = names(SE)
 
-  valorP[!grepl("beta", names(SE))] = NA
+  valorP[!grepl("beta|alpha|lambda", names(SE))] = NA
 
   se = cbind(SE, valorP)
 
@@ -366,14 +479,14 @@ estimaSe.MixCenST = function(reg, y, X, params = NULL, args = NULL, U = NULL, we
 }
 .S3method("estimaSe", "MixCenST", estimaSe.MixCenST)
 
-estimaSe.MoECenST = function(reg, y, X, params = NULL, args = NULL, weights = 1, ...){
+estimaSe.MoECenST = function(reg, y, X, r, params = NULL, args = NULL, weights = 1, ...){
 
   if(is.null(params)){
     params = reg$Parametros |> t()
 
     X = cbind(rep(1, nrow(X)), X)
     args = reg$args
-    R = cbind(rep(1, args$n), as.matrix(R))
+    R = cbind(rep(1, args$n), as.matrix(r))
     P = reg$P
   }
 
@@ -391,45 +504,53 @@ estimaSe.MoECenST = function(reg, y, X, params = NULL, args = NULL, weights = 1,
              rowSums())
   }
 
-  veroSE = function(theta, yi, Xi, phi, args, P){
+  veroSE = function(theta, yi, Xi, phi, args, R, naGrupo, nu){
 
-    theta = matrix(theta, byrow = T, nrow = args$g)
+    beta =  matrix(theta[1:(args$g*args$p)], nrow = args$g)
+    sigma =  theta[((args$g*args$p)+1):((args$g*args$p)+args$g)]
 
-    beta = theta[,1:(args$p)]
-    sigma = theta[, args$p+1]
-    alpha = theta[,(args$p+2):(ncol(theta)-1)]
-    if(is.null(args$lambda)) lambda = theta[,args$p+2]
-    else lambda = args$lambda
-
-    P = matrizP(matrix(alpha, ncol = args$g-1, byrow = T), Ri)
-    nu = theta[,ncol(theta)]
+    if(is.null(args$lambda)){
+      lambda = theta[((args$g*args$p)+1+args$g):((args$g*args$p)+2*args$g)]
+      alpha = theta[((args$g*args$p)+1+2*args$g):((args$g*args$p)+2*args$g+args$k*(args$g-1))]
+    } else{
+      lambda = args$lambda
+      alpha = theta[((args$g*args$p)+1+args$g):((args$g*args$p)+args$g+args$k*(args$g-1))]
+    }
+    P_aux = matrizP(alpha, R)
+    P = P_aux
+    P[,!1:args$g %in% naGrupo] = P_aux[,1:(args$g-1)]
+    P[,naGrupo] = P_aux[,args$g]
 
     return(
-      sum(log(dMixCen(yi, Xi, beta, sigma, lambda, P, args, nu = nu)))
+      sum(log(dMixCen(yi, Xi, beta, sigma, lambda, args = args, P = P, nu = nu)))
     )
   }
 
-  theta = as.matrix(t(params[,-which(colnames(params) %in% c("delta", "gama"))]))
+  theta = as.matrix(t(params[,-which(colnames(params) %in% c("delta", "gama", "nu"))]))
   if(!is.null(args$lambda)) theta = theta[-which(rownames(theta) == "lambda"), ]
 
-  theta_total = do.call(rbind, lapply(1:ncol(theta), function(i) cbind(theta[,i])))
-
+  theta_total = c(t(theta))
   theta_final = theta_total[!is.na(theta_total)]
 
+  naGrupo = which(params |> apply(1, function(x) sum(is.na(x))) > 0)
+
   H = numDeriv::hessian(
-    function(x) veroSE(x, yi = y, Xi = X, phi = args$phi, args = args, P = P),
-    as.vector(theta_total[!is.na(theta_total)])
+    function(x) veroSE(x, yi = y, Xi = X, phi = args$phi, args = args, R = R, naGrupo = naGrupo, nu = params[,"nu"]),
+    theta_final
   )
 
-  SE = sqrt(-diag(solve(H)))
-  names(SE) = paste0(rep(rownames(theta), args$g),
-                     sapply(1:args$g, function(x) rep(x, length(rownames(theta)))))
+  SE = theta_total
+  SE[!is.na(theta_total)] = sqrt(diag(solve(-H)))
+  if(!all(is.finite(SE[!is.na(theta_total)]))) try({SE[!is.na(theta_total)] = HelpersMG::SEfromHessian(-H)})
 
-  estat = theta_total[!is.na(theta_total)]/SE
+  names(SE) = rownames(theta) |>
+    sapply(function(x) paste0(rep(x, args$g), 1:args$g))
+
+  estat = theta_final/SE
   valorP = round(1 - pnorm(abs(estat)), 4)
   names(valorP) = names(SE)
 
-  valorP[!grepl("beta", names(SE))] = NA
+  valorP[!grepl("beta|alpha|lambda", names(SE))] = NA
 
   se = cbind(SE, valorP)
 

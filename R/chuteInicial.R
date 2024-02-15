@@ -4,21 +4,57 @@ chuteInicial = function(y, X, args, ...){
 
 chuteInicial.MixNormal = function(y, X, args){
 
-  dados = cbind(y, X[, -1])
-
   if(is.null(args$initGrupo)) args$initGrupo = "KMeans"
   grupos = switch(args$initGrupo,
-                  "KMeans" = kmeans(dados, centers = args$g)$cluster,
+                  "KMeans" = do.call(function(...) kmeans(y, centers = args$g, ...), args$cluster_args)$cluster,
                   "Aleatório" = sample(1:args$g, args$n, replace = T)
   )
 
   props = prop.table(table(grupos))
-  ordem = rank(-props)
+  ordem = order(-props)
   grupos_novo = ordem[grupos]
 
   dadosGrupos = lapply(list("X" = X, "y" = y),
                        function(x, grupos) lapply(split(x, grupos), matrix, ncol=dim(as.matrix(x))[2]),
                        grupos = grupos_novo)
+
+  medias = estimaMedia(X, params, args)
+
+  if(args$chuteMahalanobis){
+
+    if(is.null(args$maxChuteIter)) args$maxChuteIter = 10
+    if(is.null(args$tol_chute)) args$tol_chute = 0.01
+    diff_grupos = 1
+    i = 1
+    while(diff_grupos > args$tol_chute & i < args$maxChuteIter){
+      i = i+1
+      dma = do.call(
+        cbind,
+        lapply(1:args$g, function(i) dMahalanobis(y, medias[,i], params[i, "sigma"]))
+      )
+
+      grupos_new = apply(dma, 1, which.min)
+      diff_grupos = 1-mean(grupos_new == grupos_novo)
+
+      if(min(table(grupos_new))/args$n <= 0.1){
+        i = args$maxChuteIter
+        break
+      }
+
+      dadosGrupos = lapply(list("X" = X, "y" = y),
+                           function(x, grupos) lapply(split(x, grupos), matrix, ncol=dim(as.matrix(x))[2]),
+                           grupos = grupos_new)
+
+      params = do.call(rbind, mapply(estimaTeta.Normal,
+                                     dadosGrupos$y,
+                                     dadosGrupos$X,
+                                     SIMPLIFY = F))
+      print(params)
+
+      medias = estimaMedia(X, params, args)
+      grupos_novo = grupos_new
+    }
+  }
 
 
   params = do.call(rbind, mapply(estimaTeta.Normal,
@@ -35,17 +71,17 @@ chuteInicial.MixNormal = function(y, X, args){
 chuteInicial.MoENormal = function(y, X, args, initGrupo = "KMeans"){
 
   k = ncol(args$R)
-  dados = cbind(y, X[, -1])
+  dados = cbind(y)
 
 
   if(is.null(args$initGrupo)) args$initGrupo = "KMeans"
   grupos = switch(args$initGrupo,
-                  "KMeans" = kmeans(dados, centers = args$g)$cluster,
+                  "KMeans" = do.call(function(...) kmeans(dados, centers = args$g, ...), args$cluster_args)$cluster,
                   "Aleatório" = sample(1:args$g, args$n, replace = T)
   )
 
   props = prop.table(table(grupos))
-  ordem = rank(-props)
+  ordem = order(-props)
   grupos_novo = ordem[grupos]
 
   dadosGrupos = lapply(list("X" = X, "y" = y),
@@ -56,6 +92,45 @@ chuteInicial.MoENormal = function(y, X, args, initGrupo = "KMeans"){
                                  dadosGrupos$y,
                                  dadosGrupos$X,
                                  SIMPLIFY = F))
+
+  medias = estimaMedia(X, params, args)
+
+  if(args$chuteMahalanobis){
+
+    if(is.null(args$maxChuteIter)) args$maxChuteIter = 10
+    if(is.null(args$tol_chute)) args$tol_chute = 0.01
+    diff_grupos = 1
+    i = 1
+    while(diff_grupos > args$tol_chute & i < args$maxChuteIter){
+      i = i+1
+      dma = do.call(
+        cbind,
+        lapply(1:args$g, function(i) dMahalanobis(y, medias[,i], params[i, "sigma"]))
+      )
+
+      grupos_new = apply(dma, 1, which.min)
+      diff_grupos = 1-mean(grupos_new == grupos_novo)
+
+      if(min(table(grupos_new))/args$n <= 0.1){
+        i = args$maxChuteIter
+        break
+      }
+
+      dadosGrupos = lapply(list("X" = X, "y" = y),
+                           function(x, grupos) lapply(split(x, grupos), matrix, ncol=dim(as.matrix(x))[2]),
+                           grupos = grupos_new)
+
+      params = do.call(rbind, mapply(estimaTeta.Normal,
+                                     dadosGrupos$y,
+                                     dadosGrupos$X,
+                                     SIMPLIFY = F))
+      print(params)
+
+      medias = estimaMedia(X, params, args)
+      grupos_novo = grupos_new
+    }
+  }
+
 
   P = matrix(rep(c(prop.table(table(grupos))), args$n), byrow = T, ncol = args$g)
   alpha = matrix(c(rep(0, (args$g-1)*k), rep(NA, k)), nrow = args$g, ncol = k, byrow = T)
@@ -69,16 +144,14 @@ chuteInicial.MoENormal = function(y, X, args, initGrupo = "KMeans"){
 
 chuteInicial.MixT = function(y, X, args, initGrupo = "KMeans"){
 
-  dados = cbind(y, X[, -1])
-
   if(is.null(args$initGrupo)) args$initGrupo = "KMeans"
   grupos = switch(args$initGrupo,
-                  "KMeans" = kmeans(dados, centers = args$g)$cluster,
+                  "KMeans" = do.call(function(...) kmeans(y, centers = args$g, ...), args$cluster_args)$cluster,
                   "Aleatório" = sample(1:args$g, args$n, replace = T)
   )
 
   props = prop.table(table(grupos))
-  ordem = rank(-props)
+  ordem = order(-props)
   grupos_novo = ordem[grupos]
 
   dadosGrupos = lapply(list("X" = X, "y" = y),
@@ -90,6 +163,44 @@ chuteInicial.MixT = function(y, X, args, initGrupo = "KMeans"){
                                  dadosGrupos$y,
                                  dadosGrupos$X,
                                  SIMPLIFY = F))
+
+  medias = estimaMedia(X, params, args)
+
+  if(args$chuteMahalanobis){
+
+    if(is.null(args$maxChuteIter)) args$maxChuteIter = 10
+    if(is.null(args$tol_chute)) args$tol_chute = 0.01
+    diff_grupos = 1
+    i = 1
+    while(diff_grupos > args$tol_chute & i < args$maxChuteIter){
+      i = i+1
+      dma = do.call(
+        cbind,
+        lapply(1:args$g, function(i) dMahalanobis(y, medias[,i], params[i, "sigma"]))
+      )
+
+      grupos_new = apply(dma, 1, which.min)
+      diff_grupos = 1-mean(grupos_new == grupos_novo)
+
+      if(min(table(grupos_new))/args$n <= 0.1){
+        i = args$maxChuteIter
+        break
+      }
+
+      dadosGrupos = lapply(list("X" = X, "y" = y),
+                           function(x, grupos) lapply(split(x, grupos), matrix, ncol=dim(as.matrix(x))[2]),
+                           grupos = grupos_new)
+
+      params = do.call(rbind, mapply(estimaTeta.Normal,
+                                     dadosGrupos$y,
+                                     dadosGrupos$X,
+                                     SIMPLIFY = F))
+      print(params)
+
+      medias = estimaMedia(X, params, args)
+      grupos_novo = grupos_new
+    }
+  }
 
   params = as.matrix(cbind(params, "nu" = rep(5, args$g)))
 
@@ -102,16 +213,15 @@ chuteInicial.MixT = function(y, X, args, initGrupo = "KMeans"){
 chuteInicial.MoET = function(y, X, args, initGrupo = "KMeans"){
 
   k = ncol(args$R)
-  #dados = cbind(y, X[, -1])
 
   if(is.null(args$initGrupo)) args$initGrupo = "KMeans"
   grupos = switch(args$initGrupo,
-                  "KMeans" = kmeans(X[,-1], centers = args$g)$cluster,
+                  "KMeans" = kmeans(y, centers = args$g)$cluster,
                   "Aleatório" = sample(1:args$g, args$n, replace = T)
   )
 
   props = prop.table(table(grupos))
-  ordem = rank(-props)
+  ordem = order(-props)
   grupos_novo = ordem[grupos]
 
   dadosGrupos = lapply(list("X" = X, "y" = y),
@@ -123,6 +233,44 @@ chuteInicial.MoET = function(y, X, args, initGrupo = "KMeans"){
                                  dadosGrupos$y,
                                  dadosGrupos$X,
                                  SIMPLIFY = F))
+
+  medias = estimaMedia(X, params, args)
+
+  if(args$chuteMahalanobis){
+
+    if(is.null(args$maxChuteIter)) args$maxChuteIter = 10
+    if(is.null(args$tol_chute)) args$tol_chute = 0.01
+    diff_grupos = 1
+    i = 1
+    while(diff_grupos > args$tol_chute & i < args$maxChuteIter){
+      i = i+1
+      dma = do.call(
+        cbind,
+        lapply(1:args$g, function(i) dMahalanobis(y, medias[,i], params[i, "sigma"]))
+      )
+
+      grupos_new = apply(dma, 1, which.min)
+      diff_grupos = 1-mean(grupos_new == grupos_novo)
+
+      if(min(table(grupos_new))/args$n <= 0.1){
+        i = args$maxChuteIter
+        break
+      }
+
+      dadosGrupos = lapply(list("X" = X, "y" = y),
+                           function(x, grupos) lapply(split(x, grupos), matrix, ncol=dim(as.matrix(x))[2]),
+                           grupos = grupos_new)
+
+      params = do.call(rbind, mapply(estimaTeta.Normal,
+                                     dadosGrupos$y,
+                                     dadosGrupos$X,
+                                     SIMPLIFY = F))
+      print(params)
+
+      medias = estimaMedia(X, params, args)
+      grupos_novo = grupos_new
+    }
+  }
 
   params = as.matrix(cbind(params, "nu" = rep(30, args$g)))
 
@@ -139,16 +287,14 @@ chuteInicial.MoET = function(y, X, args, initGrupo = "KMeans"){
 
 chuteInicial.MixSN = function(y, X, args){
 
-  dados = cbind(y, X[, -1])
-
   if(is.null(args$initGrupo)) args$initGrupo = "KMeans"
   grupos = switch(args$initGrupo,
-                  "KMeans" = kmeans(dados, centers = args$g)$cluster,
+                  "KMeans" = do.call(function(...) kmeans(y, centers = args$g, ...), args$cluster_args)$cluster,
                   "Aleatório" = sample(1:args$g, args$n, replace = T)
   )
 
   props = prop.table(table(grupos))
-  ordem = rank(-props)
+  ordem = order(-props)
   grupos_novo = ordem[grupos]
 
   dadosGrupos = lapply(list("X" = X, "y" = y),
@@ -161,6 +307,42 @@ chuteInicial.MixSN = function(y, X, args){
                                  SIMPLIFY = F))
 
   medias = estimaMedia(X, params, args)
+
+  if(args$chuteMahalanobis){
+
+    if(is.null(args$maxChuteIter)) args$maxChuteIter = 10
+    if(is.null(args$tol_chute)) args$tol_chute = 0.01
+    diff_grupos = 1
+    i = 1
+    while(diff_grupos > args$tol_chute & i < args$maxChuteIter){
+      i = i+1
+      dma = do.call(
+        cbind,
+        lapply(1:args$g, function(i) dMahalanobis(y, medias[,i], params[i, "sigma"]))
+      )
+
+      grupos_new = apply(dma, 1, which.min)
+      diff_grupos = 1-mean(grupos_new == grupos_novo)
+
+      if(min(table(grupos_new))/args$n <= 0.1){
+        i = args$maxChuteIter
+        break
+      }
+
+      dadosGrupos = lapply(list("X" = X, "y" = y),
+                           function(x, grupos) lapply(split(x, grupos), matrix, ncol=dim(as.matrix(x))[2]),
+                           grupos = grupos_new)
+
+      params = do.call(rbind, mapply(estimaTeta.Normal,
+                                     dadosGrupos$y,
+                                     dadosGrupos$X,
+                                     SIMPLIFY = F))
+      print(params)
+
+      medias = estimaMedia(X, params, args)
+      grupos_novo = grupos_new
+    }
+  }
 
   lambda = sapply(
     1:args$g,
@@ -175,6 +357,9 @@ chuteInicial.MixSN = function(y, X, args){
     "gama" = (params[, "sigma"]**2)*(1 - (lambda/sqrt(1 + lambda**2))**2)
   )
   P = prop.table(table(grupos_novo))
+  if(args$Pequal){
+    P = rep(1/args$g, args$g)
+  }
 
   return(list(params = params, P = P))
 }
@@ -182,20 +367,14 @@ chuteInicial.MixSN = function(y, X, args){
 
 chuteInicial.MixCenSN = function(y, X, args){
 
-  dados = cbind(y)
-
   if(is.null(args$initGrupo)) args$initGrupo = "KMeans"
   grupos = switch(args$initGrupo,
-                  "KMeans" = do.call(
-                    function(...)
-                      kmeans(dados, centers = args$g, ...)$cluster,
-                    as.list(args$kmeans_params)
-                    ),
+                  "KMeans" = do.call(function(...) kmeans(y, centers = args$g, ...), args$cluster_args)$cluster,
                   "Aleatório" = sample(1:args$g, args$n, replace = T)
   )
 
   props = prop.table(table(grupos))
-  ordem = rank(-props)
+  ordem = order(-props)
   grupos_novo = ordem[grupos]
 
   dadosGrupos = lapply(list("X" = X, "y" = y),
@@ -208,6 +387,41 @@ chuteInicial.MixCenSN = function(y, X, args){
                                  SIMPLIFY = F))
 
   medias = estimaMedia(X, params, args)
+
+  if(args$chuteMahalanobis){
+
+    if(is.null(args$maxChuteIter)) args$maxChuteIter = 10
+    if(is.null(args$tol_chute)) args$tol_chute = 0.01
+    diff_grupos = 1
+    i = 1
+    while(diff_grupos > args$tol_chute & i < args$maxChuteIter){
+      i = i+1
+      dma = do.call(
+        cbind,
+        lapply(1:args$g, function(i) dMahalanobis(y, medias[,i], params[i, "sigma"]))
+      )
+
+      grupos_new = apply(dma, 1, which.min)
+      diff_grupos = 1-mean(grupos_new == grupos_novo)
+
+      if(min(table(grupos_new))/args$n <= 0.1){
+        i = args$maxChuteIter
+        break
+      }
+
+      dadosGrupos = lapply(list("X" = X, "y" = y),
+                           function(x, grupos) lapply(split(x, grupos), matrix, ncol=dim(as.matrix(x))[2]),
+                           grupos = grupos_new)
+
+      params = do.call(rbind, mapply(estimaTeta.Normal,
+                                     dadosGrupos$y,
+                                     dadosGrupos$X,
+                                     SIMPLIFY = F))
+
+      medias = estimaMedia(X, params, args)
+      grupos_novo = grupos_new
+    }
+  }
 
   P = prop.table(table(grupos_novo))
 
@@ -236,16 +450,13 @@ chuteInicial.MixCenSN = function(y, X, args){
 
 chuteInicial.MoECenSN = function(y, X, args){
 
-  dados = cbind(y)
-
   if(is.null(args$initGrupo)) args$initGrupo = "KMeans"
   grupos = switch(args$initGrupo,
-                  "KMeans" = kmeans(dados, centers = args$g)$cluster,
+                  "KMeans" = do.call(function(...) kmeans(y, centers = args$g, ...), args$cluster_args)$cluster,
                   "Aleatório" = sample(1:args$g, args$n, replace = T)
   )
-
   props = prop.table(table(grupos))
-  ordem = rank(-props)
+  ordem = order(-props)
   grupos_novo = ordem[grupos]
 
   dadosGrupos = lapply(list("X" = X, "y" = y),
@@ -258,6 +469,43 @@ chuteInicial.MoECenSN = function(y, X, args){
                                  SIMPLIFY = F))
 
   medias = estimaMedia(X, params, args)
+
+  if(args$chuteMahalanobis){
+
+    if(is.null(args$maxChuteIter)) args$maxChuteIter = 10
+    if(is.null(args$tol_chute)) args$tol_chute = 0.01
+    diff_grupos = 1
+    i = 1
+    while(diff_grupos > args$tol_chute & i < args$maxChuteIter){
+      i = i+1
+      dma = do.call(
+        cbind,
+        lapply(1:args$g, function(i) dMahalanobis(y, medias[,i], params[i, "sigma"]))
+      )
+
+      grupos_new = apply(dma, 1, which.min)
+      diff_grupos = 1-mean(grupos_new == grupos_novo)
+
+      if(min(table(grupos_new))/args$n <= 0.1){
+        i = args$maxChuteIter
+        break
+      }
+
+      dadosGrupos = lapply(list("X" = X, "y" = y),
+                           function(x, grupos) lapply(split(x, grupos), matrix, ncol=dim(as.matrix(x))[2]),
+                           grupos = grupos_new)
+
+      params = do.call(rbind, mapply(estimaTeta.Normal,
+                                     dadosGrupos$y,
+                                     dadosGrupos$X,
+                                     SIMPLIFY = F))
+
+      medias = estimaMedia(X, params, args)
+      grupos_novo = grupos_new
+    }
+  }
+
+
 
   P = matrix(rep(c(prop.table(table(grupos_novo))), args$n), byrow = T, ncol = args$g)
   alpha = matrix(c(rep(0, (args$g-1)*args$k), rep(NA, args$k)),
@@ -276,7 +524,6 @@ chuteInicial.MoECenSN = function(y, X, args){
     lambda = args$lambda
   }
 
-
   params = cbind(
     params,
     "lambda" = lambda,
@@ -294,6 +541,7 @@ chuteInicial.MoEST = function(y, X, args){
 
   if(is.null(args$initial_iter)) args$initial_iter = 100
 
+  class(y) = ""
   modeloSN = regEM(
     y,
     X[, -1],
@@ -304,7 +552,10 @@ chuteInicial.MoEST = function(y, X, args){
     family = "MoESN",
     lambda = args$lambda,
     verbose = args$verbose,
-    tol = args$tol
+    tol = args$tol,
+    mcFirst = F,
+    chuteMahalanobis = args$chuteMahalanobis,
+    varEqual = args$varEqual
   )
 
   params = t(modeloSN$Parametros)
@@ -334,14 +585,16 @@ chuteInicial.MoEST = function(y, X, args){
         nu = optim(c(30, 30),
                    fn = Q,
                    method = "L-BFGS-B",
-                   lower = 1,
-                   upper = 30,
+                   lower = 2.01,
+                   upper = 150,
+                   abstol = 1E-6,
                    control = list(fnscale = -1)
         )$par
       }else{
         nu = optimize(
           Q,
           c(1, 30),
+          tol = 1E-6,
           maximum = T
         )$maximum
         nu = rep(nu, args$g)
@@ -375,7 +628,8 @@ chuteInicial.MixCenST = function(y, X, args){
     family = "MixCenSN",
     lambda = args$lambda,
     verbose = args$verbose,
-    tol = args$tol
+    tol = args$tol,
+    mcFirst = F
   )
 
   params = t(modeloSN$Parametros)
@@ -402,17 +656,19 @@ chuteInicial.MixCenST = function(y, X, args){
   nu = tryCatch({
     if(is.null(args$nuFixo)){
       if(is.null(args$nuIgual) || (args$nuIgual != T)){
-        nu = optim(c(30, 30),
+        nu = optim(rep(30, args$g),
                    fn = Q,
                    method = "L-BFGS-B",
-                   lower = 1,
-                   upper = 30,
+                   lower = 2.01,
+                   upper = 150,
+                   abstol = 1E-6,
                    control = list(fnscale = -1)
         )$par
       }else{
         nu = optimize(
           Q,
-          c(1, 30),
+          tol = 1E-6,
+          c(2.01, 150),
           maximum = T
         )$maximum
         nu = rep(nu, args$g)
@@ -446,11 +702,13 @@ chuteInicial.MoECenST = function(y, X, args){
     max_iter = args$initial_iter,
     family = "MoECenSN",
     lambda = args$lambda,
-    verbose = args$verbose
+    verbose = args$verbose,
+    mcFirst = F
   )
 
   params = t(modeloSN$Parametros)
   medias = estimaMedia(X, params, args)
+
   P = modeloSN$P
 
   Q = function(NU){
@@ -476,14 +734,16 @@ chuteInicial.MoECenST = function(y, X, args){
         nu = optim(c(30, 30),
                    fn = Q,
                    method = "L-BFGS-B",
-                   lower = 1,
-                   upper = 30,
+                   lower = 2.01,
+                   upper = 150,
+                   abstol = 1E-6,
                    control = list(fnscale = -1)
         )$par
       }else{
         nu = optimize(
           Q,
-          c(1, 30),
+          c(2.01, 150),
+          tol = 1E-6,
           maximum = T
         )$maximum
         nu = rep(nu, args$g)
