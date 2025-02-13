@@ -481,6 +481,7 @@ estimaSe.MixCenST = function(reg, y, X, params = NULL, args = NULL, U = NULL, we
 
 estimaSe.MoECenST = function(reg, y, X, r, params = NULL, args = NULL, weights = 1, ...){
 
+
   if(is.null(params)){
     params = reg$Parametros |> t()
 
@@ -516,7 +517,8 @@ estimaSe.MoECenST = function(reg, y, X, r, params = NULL, args = NULL, weights =
       lambda = args$lambda
       alpha = theta[((args$g*args$p)+1+args$g):((args$g*args$p)+args$g+args$k*(args$g-1))]
     }
-    P_aux = matrizP(alpha, R)
+
+    P_aux = matrizP(alpha |> matrix(nrow = args$k, byrow = T), R)
     P = P_aux
     P[,!1:args$g %in% naGrupo] = P_aux[,1:(args$g-1)]
     P[,naGrupo] = P_aux[,args$g]
@@ -546,13 +548,12 @@ estimaSe.MoECenST = function(reg, y, X, r, params = NULL, args = NULL, weights =
   names(SE) = rownames(theta) |>
     sapply(function(x) paste0(rep(x, args$g), 1:args$g))
 
-  estat = theta_final/SE
-  valorP = round(1 - pnorm(abs(estat)), 4)
+  valorP = round(1 - pnorm(abs(theta_final), mean = 0, sd = SE), 4)
   names(valorP) = names(SE)
 
   valorP[!grepl("beta|alpha|lambda", names(SE))] = NA
 
-  se = cbind(SE, valorP)
+  se = cbind("est" = theta_total, SE, valorP)
 
   return(se)
 }

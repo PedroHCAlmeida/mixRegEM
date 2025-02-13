@@ -18,9 +18,11 @@ chuteInicial.MixNormal = function(y, X, args){
                        function(x, grupos) lapply(split(x, grupos), matrix, ncol=dim(as.matrix(x))[2]),
                        grupos = grupos_novo)
 
-  params = do.call(rbind, mapply(estimaTeta.Normal,
+  params = do.call(rbind, mapply(estimaTeta.MixNormal,
                                  dadosGrupos$y,
                                  dadosGrupos$X,
+                                 Z = 1,
+                                 lasso = ifelse(is.null(args$lasso), F, args$lasso),
                                  SIMPLIFY = F))
 
   medias = estimaMedia(X, params, args)
@@ -50,9 +52,11 @@ chuteInicial.MixNormal = function(y, X, args){
                              function(x, grupos) lapply(split(x, grupos), matrix, ncol=dim(as.matrix(x))[2]),
                              grupos = grupos_new)
 
-        params = do.call(rbind, mapply(estimaTeta.Normal,
+        params = do.call(rbind, mapply(estimaTeta.MixNormal,
                                        dadosGrupos$y,
                                        dadosGrupos$X,
+                                       Z = 1,
+                                       lasso = ifelse(is.null(args$lasso), F, args$lasso),
                                        SIMPLIFY = F))
 
         medias = estimaMedia(X, params, args)
@@ -83,14 +87,18 @@ chuteInicial.MoENormal = function(y, X, args, initGrupo = "KMeans"){
   ordem = order(-props)
   grupos_novo = ordem[grupos]
 
+
   dadosGrupos = lapply(list("X" = X, "y" = y),
                        function(x, grupos) lapply(split(x, grupos), matrix, ncol=dim(as.matrix(x))[2]),
                        grupos = grupos_novo)
 
-  params = do.call(rbind, mapply(estimaTeta.Normal,
+  params = do.call(rbind, mapply(estimaTeta.MixNormal,
                                  dadosGrupos$y,
                                  dadosGrupos$X,
+                                 Z = 1,
+                                 lasso = ifelse(is.null(args$lasso), F, args$lasso),
                                  SIMPLIFY = F))
+
 
   medias = estimaMedia(X, params, args)
 
@@ -119,9 +127,11 @@ chuteInicial.MoENormal = function(y, X, args, initGrupo = "KMeans"){
                            function(x, grupos) lapply(split(x, grupos), matrix, ncol=dim(as.matrix(x))[2]),
                            grupos = grupos_new)
 
-      params = do.call(rbind, mapply(estimaTeta.Normal,
+      params = do.call(rbind, mapply(estimaTeta.MixNormal,
                                      dadosGrupos$y,
                                      dadosGrupos$X,
+                                     Z = 1,
+                                     lasso = ifelse(is.null(args$lasso), F, args$lasso),
                                      SIMPLIFY = F))
 
       medias = estimaMedia(X, params, args)
@@ -131,8 +141,9 @@ chuteInicial.MoENormal = function(y, X, args, initGrupo = "KMeans"){
 
 
   P = matrix(rep(c(prop.table(table(grupos))), args$n), byrow = T, ncol = args$g)
-  alpha = matrix(c(rep(0, (args$g-1)*k), rep(NA, k)), nrow = args$g, ncol = k, byrow = T)
   #alpha = matrix(c(nnet::multinom(grupos ~ R[,-1])$wts[-1], rep(NA, p)), nrow = g, ncol = k, byrow = T)
+  alpha = matrix(c(rep(0, (args$g-1)*k), rep(NA, k)), nrow = args$g, ncol = k, byrow = T)
+
   colnames(alpha) = paste0("alpha", 1:k)
   params = cbind(params, alpha = alpha)
 
@@ -141,6 +152,7 @@ chuteInicial.MoENormal = function(y, X, args, initGrupo = "KMeans"){
 .S3method("chuteInicial", "MoENormal", chuteInicial.MoENormal)
 
 chuteInicial.MixT = function(y, X, args, initGrupo = "KMeans"){
+
 
   if(is.null(args$initGrupo)) args$initGrupo = "KMeans"
   grupos = switch(args$initGrupo,
@@ -234,43 +246,43 @@ chuteInicial.MoET = function(y, X, args, initGrupo = "KMeans"){
 
   medias = estimaMedia(X, params, args)
 
-  if(args$chuteMahalanobis){
+  # if(args$chuteMahalanobis){
+  #
+  #   if(is.null(args$maxChuteIter)) args$maxChuteIter = 10
+  #   if(is.null(args$tol_chute)) args$tol_chute = 0.01
+  #   diff_grupos = 1
+  #   i = 1
+  #   while(diff_grupos > args$tol_chute & i < args$maxChuteIter){
+  #     i = i+1
+  #     dma = do.call(
+  #       cbind,
+  #       lapply(1:args$g, function(i) dMahalanobis(y, medias[,i], params[i, "sigma"]))
+  #     )
+  #
+  #     grupos_new = apply(dma, 1, which.min)
+  #     diff_grupos = 1-mean(grupos_new == grupos_novo)
+  #
+  #     if(min(table(grupos_new))/args$n <= 0.1){
+  #       i = args$maxChuteIter
+  #       break
+  #     }
+  #
+  #     dadosGrupos = lapply(list("X" = X, "y" = y),
+  #                          function(x, grupos) lapply(split(x, grupos), matrix, ncol=dim(as.matrix(x))[2]),
+  #                          grupos = grupos_new)
+  #
+  #     params = do.call(rbind, mapply(estimaTeta.Normal,
+  #                                    dadosGrupos$y,
+  #                                    dadosGrupos$X,
+  #                                    SIMPLIFY = F))
+  #
+  #
+  #     medias = estimaMedia(X, params, args)
+  #     grupos_novo = grupos_new
+  #   }
+  # }
 
-    if(is.null(args$maxChuteIter)) args$maxChuteIter = 10
-    if(is.null(args$tol_chute)) args$tol_chute = 0.01
-    diff_grupos = 1
-    i = 1
-    while(diff_grupos > args$tol_chute & i < args$maxChuteIter){
-      i = i+1
-      dma = do.call(
-        cbind,
-        lapply(1:args$g, function(i) dMahalanobis(y, medias[,i], params[i, "sigma"]))
-      )
-
-      grupos_new = apply(dma, 1, which.min)
-      diff_grupos = 1-mean(grupos_new == grupos_novo)
-
-      if(min(table(grupos_new))/args$n <= 0.1){
-        i = args$maxChuteIter
-        break
-      }
-
-      dadosGrupos = lapply(list("X" = X, "y" = y),
-                           function(x, grupos) lapply(split(x, grupos), matrix, ncol=dim(as.matrix(x))[2]),
-                           grupos = grupos_new)
-
-      params = do.call(rbind, mapply(estimaTeta.Normal,
-                                     dadosGrupos$y,
-                                     dadosGrupos$X,
-                                     SIMPLIFY = F))
-
-
-      medias = estimaMedia(X, params, args)
-      grupos_novo = grupos_new
-    }
-  }
-
-  params = as.matrix(cbind(params, "nu" = rep(30, args$g)))
+  params = as.matrix(cbind(params, "nu" = rep(1, args$g)))
 
   P = matrix(rep(c(prop.table(table(grupos_novo))), args$n), byrow = T, ncol = args$g)
   alpha = matrix(c(rep(0, (args$g-1)*k), rep(NA, k)),
@@ -537,7 +549,7 @@ chuteInicial.MoECenSN = function(y, X, args){
 
 chuteInicial.MoEST = function(y, X, args){
 
-  if(is.null(args$initial_iter)) args$initial_iter = 100
+  if(is.null(args$initial_iter)) args$initial_iter = 2
 
   class(y) = ""
   modeloSN = regEM(
@@ -553,10 +565,12 @@ chuteInicial.MoEST = function(y, X, args){
     tol = args$tol,
     mcFirst = F,
     chuteMahalanobis = args$chuteMahalanobis,
+    initGrupo = args$initGrupo,
     varEqual = args$varEqual
   )
 
-  params = t(modeloSN$Parametros)
+  params = modeloSN$Parametros
+  if(args$g>1) params = t(params)
   medias = estimaMedia(X, params, args)
   P = modeloSN$P
 
@@ -580,7 +594,7 @@ chuteInicial.MoEST = function(y, X, args){
   nu = tryCatch({
     if(is.null(args$nuFixo)){
       if(is.null(args$nuIgual) || (args$nuIgual != T)){
-        nu = optim(c(30, 30),
+        nu = optim(c(3, 3),
                    fn = Q,
                    method = "L-BFGS-B",
                    lower = 2.01,
@@ -600,7 +614,7 @@ chuteInicial.MoEST = function(y, X, args){
     }
     else nu = args$nuFixo
   },
-  error = function(e) {return(rep(30, args$g))}
+  error = function(e) {return(rep(3, args$g))}
   )
 
   if(!is.null(args$nuFixo)) nu = args$nuFixo
@@ -612,7 +626,7 @@ chuteInicial.MoEST = function(y, X, args){
 
 chuteInicial.MixCenST = function(y, X, args){
 
-  if(is.null(args$initial_iter)) args$initial_iter = 100
+  if(is.null(args$initial_iter)) args$initial_iter = 2
 
   modeloSN = regEM(
     y,
@@ -627,10 +641,12 @@ chuteInicial.MixCenST = function(y, X, args){
     lambda = args$lambda,
     verbose = args$verbose,
     tol = args$tol,
+    initGrupo = args$initGrupo,
     mcFirst = F
   )
 
-  params = t(modeloSN$Parametros)
+  params = modeloSN$Parametros
+  if(args$g>1) params = t(params)
   medias = estimaMedia(X, params, args)
   P = modeloSN$P
 
@@ -674,7 +690,7 @@ chuteInicial.MixCenST = function(y, X, args){
     }
     else nu = args$nuFixo
   },
-  error = function(e) {return(rep(30, args$g))}
+  error = function(e) {return(rep(3, args$g))}
   )
 
   if(!is.null(args$nuFixo)) nu = args$nuFixo
@@ -686,7 +702,7 @@ chuteInicial.MixCenST = function(y, X, args){
 
 chuteInicial.MoECenST = function(y, X, args){
 
-  if(is.null(args$initial_iter)) args$initial_iter = 100
+  if(is.null(args$initial_iter)) args$initial_iter = 2
 
   modeloSN = regEM(
     y,
@@ -701,10 +717,12 @@ chuteInicial.MoECenST = function(y, X, args){
     family = "MoECenSN",
     lambda = args$lambda,
     verbose = args$verbose,
+    initGrupo = args$initGrupo,
     mcFirst = F
   )
 
-  params = t(modeloSN$Parametros)
+  params = modeloSN$Parametros
+  if(args$g>1) params = t(params)
   medias = estimaMedia(X, params, args)
 
   P = modeloSN$P
@@ -729,7 +747,7 @@ chuteInicial.MoECenST = function(y, X, args){
   nu = tryCatch({
     if(is.null(args$nuFixo)){
       if(is.null(args$nuIgual) || (args$nuIgual != T)){
-        nu = optim(c(30, 30),
+        nu = optim(c(3, 3),
                    fn = Q,
                    method = "L-BFGS-B",
                    lower = 2.01,
@@ -749,7 +767,7 @@ chuteInicial.MoECenST = function(y, X, args){
     }
     else nu = args$nuFixo
   },
-  error = function(e) return(rep(30, args$g))
+  error = function(e) return(rep(3, args$g))
   )
 
   if(!is.null(args$nuFixo)) nu = args$nuFixo

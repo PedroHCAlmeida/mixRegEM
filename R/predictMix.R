@@ -15,6 +15,39 @@ predictMix = function(reg, x = NULL, r = NULL, grupos = NULL, class = T, real = 
   UseMethod("predictMix")
 }
 #' @export
+predictMix.MixNormal = function(reg, x, grupos = NULL, class = T, real = NULL){
+
+  reg$Parametros = t(reg$Parametros)
+
+  args = list()
+  args$n = nrow(as.matrix(x))
+  args$g = reg$g
+  X = cbind(rep(1, args$n), as.matrix(x))
+
+  X = MixNormal(X)
+
+  P = reg$P
+  mu = estimaMedia(X, reg$Parametros, args)
+
+  if(is.null(grupos)) grupos = apply(P, 1, which.max)
+
+  if(!class) y = apply(P*mu, 1, sum)
+  else{
+    y = sapply(1:args$n,
+               function(i) mu[i, grupos[i]])
+  }
+  if(!is.null(real)){
+    res = y-real
+    rmse = sqrt(mean(res**2))
+  } else{
+    res = NULL
+    rmse = NULL
+  }
+
+  return(list(y_hat = y, grupos = grupos, res = res, rmse = rmse))
+}
+.S3method("predictMix", "MixNormal", predictMix.MixNormal)
+
 predictMix.MoENormal = function(reg, x, r, grupos = NULL, class = T, real = NULL){
 
   reg$Parametros = t(reg$Parametros)

@@ -7,8 +7,14 @@ etapaM.MixNormal = function(y, X, U, params, args){
   paramsNovo = do.call(
     rbind,
     lapply(1:args$g,
-           function(j) estimaTeta.MixNormal(y = y, X = X, Z = U$Z[,j])))
+           function(j) estimaTeta.MixNormal(y = y, X = X, Z = U$Z[,j], lasso = args$lasso)))
 
+
+  if(!is.null(args$varEqual)){
+    if(args$varEqual){
+      paramsNovo[,"sigma"] = sum(apply(U$Z, 1, function(x) x*paramsNovo[,"sigma"]))/args$n
+    }
+  }
 
   P = colMeans(U$Z)
 
@@ -23,7 +29,13 @@ etapaM.MoENormal = function(y, X, U, params, args){
     sapply(1:args$g,
            function(j) estimaTeta.MoENormal(y = y, X = X, Z = U$Z[,j], R = args$R,
                                             alpha = params$params[j,startsWith(colnames(params$params), "alpha")],
-                                            P = params$P[,j])))
+                                            P = params$P[,j], class = apply(U$Z, 1, which.max)==j, lasso = args$lasso)))
+
+  if(!is.null(args$varEqual)){
+    if(args$varEqual){
+      paramsNovo[,"sigma"] = sum(apply(U$Z, 1, function(x) x*paramsNovo[,"sigma"]))/args$n
+    }
+  }
 
   P = matrizP(t(paramsNovo)[startsWith(colnames(paramsNovo), "alpha"), 1:(args$g-1)], args$R)
 
@@ -72,9 +84,17 @@ etapaM.MixT = function(y, X, U, params, args){
              fn = Q,
              method = "L-BFGS-B",
              lower = 1,
-             upper = 30,
+             upper = 100,
              control = list(fnscale = -1)
              )$par
+
+  if(!is.null(args$varEqual)){
+    if(args$varEqual){
+      paramsNovo[,"gama"] = sum(apply(U$Z, 1, function(x) x*paramsNovo[,"gama"]))/args$n
+      paramsNovo[,"lambda"] = paramsNovo[,"delta"]/sqrt(paramsNovo[,"gama"])
+      paramsNovo[,"sigma"] = sqrt(paramsNovo[,"delta"]**2 + paramsNovo[,"gama"])
+    }
+  }
 
   P = colMeans(U$Z)
 
@@ -111,9 +131,17 @@ etapaM.MoET = function(y, X, U, params, args){
              fn = Q,
              method = "L-BFGS-B",
              lower = 1,
-             upper = 30,
+             upper = 100,
              control = list(fnscale = -1)
   )$par
+
+  if(!is.null(args$varEqual)){
+    if(args$varEqual){
+      paramsNovo[,"gama"] = sum(apply(U$Z, 1, function(x) x*paramsNovo[,"gama"]))/args$n
+      paramsNovo[,"lambda"] = paramsNovo[,"delta"]/sqrt(paramsNovo[,"gama"])
+      paramsNovo[,"sigma"] = sqrt(paramsNovo[,"delta"]**2 + paramsNovo[,"gama"])
+    }
+  }
 
   P = matrizP(t(paramsNovo)[startsWith(colnames(paramsNovo), "alpha"), 1:(args$g-1)], args$R)
 
@@ -186,14 +214,13 @@ etapaM.MoEST = function(y, X, U, params, args){
                  fn = Q,
                  method = "L-BFGS-B",
                  lower = 1,
-                 upper = 30,
+                 upper = 100,
                  control = list(fnscale = -1)
       )$par
     }else{
       nu = optimize(
         Q,
-        c(1, 30),
-
+        c(1, 100),
         maximum = T
       )$maximum
       nu = rep(nu, args$g)
@@ -222,10 +249,19 @@ etapaM.MixSN = function(y, X, U, params, args){
              Z = U$Z[,j],
              t1 = U$t1[,j],
              t2 = U$t2[,j],
-             delta = params$params[j,"delta"]
+             delta = params$params[j,"delta"],
+             lasso = args$lasso
              )
            )
     )
+
+  if(!is.null(args$varEqual)){
+    if(args$varEqual){
+      paramsNovo[,"gama"] = sum(apply(U$Z, 1, function(x) x*paramsNovo[,"gama"]))/args$n
+      paramsNovo[,"lambda"] = paramsNovo[,"delta"]/sqrt(paramsNovo[,"gama"])
+      paramsNovo[,"sigma"] = sqrt(paramsNovo[,"delta"]**2 + paramsNovo[,"gama"])
+    }
+  }
 
 
   P = colMeans(U$Z)
@@ -264,6 +300,14 @@ etapaM.MixCenSN = function(y, X, U, params, args){
     paramsAtual = paramsNovo
   }
 
+  if(!is.null(args$varEqual)){
+    if(args$varEqual){
+      paramsNovo[,"gama"] = sum(apply(U$Z, 1, function(x) x*paramsNovo[,"gama"]))/args$n
+      paramsNovo[,"lambda"] = paramsNovo[,"delta"]/sqrt(paramsNovo[,"gama"])
+      paramsNovo[,"sigma"] = sqrt(paramsNovo[,"delta"]**2 + paramsNovo[,"gama"])
+    }
+  }
+
   P = colMeans(U$Z)
 
   return(list(params = paramsNovo, P = P))
@@ -298,6 +342,14 @@ etapaM.MoECenSN = function(y, X, U, params, args){
     return(params)
   } else{
     paramsAtual = paramsNovo
+  }
+
+  if(!is.null(args$varEqual)){
+    if(args$varEqual){
+      paramsNovo[,"gama"] = sum(apply(U$Z, 1, function(x) x*paramsNovo[,"gama"]))/args$n
+      paramsNovo[,"lambda"] = paramsNovo[,"delta"]/sqrt(paramsNovo[,"gama"])
+      paramsNovo[,"sigma"] = sqrt(paramsNovo[,"delta"]**2 + paramsNovo[,"gama"])
+    }
   }
 
   P = matrizP(t(paramsNovo)[startsWith(colnames(paramsNovo), "alpha"), 1:(args$g-1)], args$R)
@@ -359,13 +411,13 @@ etapaM.MixCenST = function(y, X, U, params, args){
                  fn = Q,
                  method = "L-BFGS-B",
                  lower = 1,
-                 upper = 30,
+                 upper = 100,
                  control = list(fnscale = -1)
       )$par
     }else{
       nu = optimize(
         Q,
-        c(1, 30),
+        c(1, 100),
 
         maximum = T
       )$maximum
@@ -375,6 +427,15 @@ etapaM.MixCenST = function(y, X, U, params, args){
   else nu = params$params[,"nu"]
 
   paramsNovo = as.matrix(cbind(paramsNovo, "nu" = as.numeric(nu)))
+
+  if(!is.null(args$varEqual)){
+    if(args$varEqual){
+      paramsNovo[,"gama"] = sum(apply(U$Z, 1, function(x) x*paramsNovo[,"gama"]))/args$n
+      paramsNovo[,"lambda"] = paramsNovo[,"delta"]/sqrt(paramsNovo[,"gama"])
+      paramsNovo[,"sigma"] = sqrt(paramsNovo[,"delta"]**2 + paramsNovo[,"gama"])
+    }
+  }
+
   P = colMeans(U$Z)
 
   return(list(params = paramsNovo, P = P))
@@ -436,13 +497,13 @@ etapaM.MoECenST = function(y, X, U, params, args){
                  fn = Q,
                  method = "L-BFGS-B",
                  lower = 1,
-                 upper = 30,
+                 upper = 100,
                  control = list(fnscale = -1)
       )$par
     }else{
       nu = optimize(
         Q,
-        c(1, 30),
+        c(1, 100),
 
         maximum = T
       )$maximum
@@ -452,6 +513,15 @@ etapaM.MoECenST = function(y, X, U, params, args){
   else nu = params$params[,"nu"]
 
   paramsNovo = as.matrix(cbind(paramsNovo, "nu" = as.numeric(nu)))
+
+  if(!is.null(args$varEqual)){
+    if(args$varEqual){
+      paramsNovo[,"gama"] = sum(apply(U$Z, 1, function(x) x*paramsNovo[,"gama"]))/args$n
+      paramsNovo[,"lambda"] = paramsNovo[,"delta"]/sqrt(paramsNovo[,"gama"])
+      paramsNovo[,"sigma"] = sqrt(paramsNovo[,"delta"]**2 + paramsNovo[,"gama"])
+    }
+  }
+
   P = matrizP(t(paramsNovo)[startsWith(colnames(paramsNovo), "alpha"), 1:(args$g-1)], args$R)
 
   return(list(params = paramsNovo, P = P))

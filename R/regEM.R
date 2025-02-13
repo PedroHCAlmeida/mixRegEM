@@ -16,7 +16,7 @@
 #' @export
 regEM = function(y, x, g = 2, ..., tol = 1E-6, family = "MixNormal",
                  grupoReal = NULL, max_iter = 1000, min_iter = 1, verbose = F,
-                 showSE = F, aitken = T, mcFirst = F){
+                 showSE = F, aitken = F, mcFirst = F){
 
   if(length(g) > 1 | length(family) > 1)
     return(
@@ -28,14 +28,16 @@ regEM = function(y, x, g = 2, ..., tol = 1E-6, family = "MixNormal",
 
   args = list(...)
 
-  if(family %in% c("MixCenNormal", "MixCenT", "MoECenNormal", "MoECenT")){
+  if(family %in% c("MixCenNormal", "MixCenT", "MoECenNormal", "MoECenT", "MoET", "MixT")){
     args$lambda = rep(0, g)
     family = switch(
       family,
       "MixCenNormal" = "MixCenSN",
       "MixCenT"= "MixCenST",
       "MoECenNormal" = "MoECenSN",
-      "MoECenT" = "MoECenST"
+      "MoECenT" = "MoECenST",
+      "MoET" = "MoEST",
+      "MixT" = "MixST"
     )
   }
   if(family %in% c("MixST")){
@@ -90,7 +92,10 @@ regEM = function(y, x, g = 2, ..., tol = 1E-6, family = "MixNormal",
   X = eval(parse(text = family))(X)
 
   paramsAtual = chuteInicial(y, X, args)
+
+  paramsAtual$params = cbind(paramsAtual$params, "penalty" = rep(0, args$g))
   if(verbose) print(paramsAtual)
+
   medias = estimaMedia(X, paramsAtual$params, args)
   crit = 1
   it = 0
@@ -150,14 +155,17 @@ regEM = function(y, x, g = 2, ..., tol = 1E-6, family = "MixNormal",
 
   ll[3] = vero(y, medias, paramsAtual, args)
 
-  Par = c(paramsAtual$params[,!colnames(paramsAtual$params) %in% c("delta", "gama")])
-  nPar = length(Par[!is.na(Par)])-sum(args$lambda==0)
+  Par = c(paramsAtual$params[,!colnames(paramsAtual$params) %in% c("delta", "gama", "penaltys")])
+  nPar = length(Par[!is.na(Par)])-sum(paramsAtual$params==0, na.rm = T)
 
   if(is.null(args$nuFixo) & !is.null(args$nuIgual) & grepl("t|T", family)){
     if(args$nuIgual == T) nPar = nPar-args$g+1
   }
   if(!is.null(args$nuFixo) & grepl("t|T", family)){
     nPar = nPar-args$g+length(unique(nu))
+  }
+  if(!is.null(args$varEqual)){
+    if(args$varEqual == T) nPar = nPar-args$g+1
   }
 
   if(grepl("Mix", family)) nPar = nPar+args$g-1
@@ -179,6 +187,7 @@ regEM = function(y, x, g = 2, ..., tol = 1E-6, family = "MixNormal",
 
   rownames(paramsAtual$params) = 1:nrow(paramsAtual$params)
   if(showSE) se = estimaSe(y, X, paramsAtual, args = args, U = U) else se = NULL
+  if(is.null(args$lasso)) paramsAtual$params = paramsAtual$params[,colnames(paramsAtual$params) != "penalty"]
 
   resultados = list(
     Iteracoes = it,
@@ -197,28 +206,3 @@ regEM = function(y, x, g = 2, ..., tol = 1E-6, family = "MixNormal",
   class(resultados) = c("resultadosEM", class(X))
   return(resultados)
 }
-#.S3method("regEM", "default", regEM.default)
-
-# regEM.formula = function(form, data, g = 2, ..., tol = 1E-6, family = "MixNormal",
-#                          grupoReal = NULL, max_iter = 1000, min_iter = 1, verbose = F, showSE = F){
-#
-#   v1 = rlang::f_lhs(form)
-#   v2 = rlang::f_rhs(form)
-#
-#   y = data[,v1] |>
-#     as.matrix()
-#
-#   x = data[,v2] |>
-#     as.matrix()
-#
-#   print(x)
-#
-#   f = function(...)
-#     regEM.default(y = y, x = x, g = g, ..., tol = tol, family = family,
-#                   grupoReal = grupoReal, max_iter = max_iter, min_iter = min_ter,
-#                   verbose = verbose, showSE = showSE)
-#
-#   do.call(f, list(...))
-# }
-# .S3method("regEM", "formula", regEM.formula)
-

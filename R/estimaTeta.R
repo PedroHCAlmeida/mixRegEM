@@ -13,22 +13,104 @@ estimaTeta.Normal = function(y, X){
 }
 .S3method("estimaTeta", "Normal", estimaTeta.Normal)
 
-estimaTeta.MixNormal = function(y, X, Z){
+estimaTeta.MixNormal = function(y, X, Z, lasso){
 
+  if(length(Z) == 1) Z = rep(1, nrow(X))
   X = Matrix::Matrix(X, sparse = T)
-  beta = solve(Matrix::t(X)%*%Matrix::Diagonal(x = Z)%*%X)%*%(Matrix::t(X)%*%Matrix::Matrix(Z*y))
+
+  if(is.null(lasso) || lasso == F){
+    beta = solve(Matrix::t(X)%*%Matrix::Diagonal(x = Z)%*%X)%*%(Matrix::t(X)%*%Matrix::Matrix(Z*y))
+    penalty = 0
+  }else{
+    if(lasso){
+
+
+
+      model_cv = glmnet::cv.glmnet(
+        x = as.matrix(scale(X)[,-1]),
+        y = as.vector(scale(y)),
+        intercept = T,
+        folds = 5,
+        type.measure = "deviance",
+        family = "gaussian",
+        weights = Z,
+        alpha = 1,
+        tresh = 1E-10
+        )
+
+      penalty = model_cv$lambda.1se
+      beta = coef(model_cv, s = "lambda.1se") |> as.vector()
+
+      beta[beta!=0] = solve(Matrix::t(X[,beta!=0])%*%Matrix::Diagonal(x = Z)%*%X[,beta!=0])%*%(Matrix::t(X[,beta!=0])%*%Matrix::Matrix(Z*y))
+
+    }else{
+      beta = solve(Matrix::t(X)%*%Matrix::Diagonal(x = Z)%*%X)%*%(Matrix::t(X)%*%Matrix::Matrix(Z*y))
+      penalty = 0
+    }
+  }
   sigma = sqrt(sum(Z*(y - as.matrix(X%*%beta))^2)/sum(Z))
 
-  c(beta = as.matrix(beta), sigma = sigma)
+  c(beta = as.matrix(beta), sigma = sigma, penalty = penalty/(sigma**2))
 }
 .S3method("estimaTeta", "MixNormal", estimaTeta.MixNormal)
 
-estimaTeta.MoENormal = function(y, X, Z, R, alpha, P){
+estimaTeta.MoENormal = function(y, X, Z, R, alpha, P, lasso, class){
+
+  if(length(Z) == 1){
+    Z = P = class = rep(1, nrow(X))
+  }
 
   X = Matrix::Matrix(X, sparse = T)
-  beta = solve(Matrix::t(X)%*%Matrix::Diagonal(x = Z)%*%X)%*%(Matrix::t(X)%*%Matrix::Matrix(Z*y))
-  sigma = sqrt(sum(Z*(y - (X%*%beta))^2)/sum(Z))
-  alphaNovo = alpha + 4*solve(t(as.matrix(R))%*%as.matrix(R))%*%(t(as.matrix(R))%*%(Z - P))
+
+  if(is.null(lasso) || lasso == F){
+    beta = solve(Matrix::t(X)%*%Matrix::Diagonal(x = Z)%*%X)%*%(Matrix::t(X)%*%Matrix::Matrix(Z*y))
+    alphaNovo = alpha + 4*solve(t(as.matrix(R))%*%as.matrix(R))%*%(t(as.matrix(R))%*%(Z - P))
+    penalty = 0
+  }else{
+    if(lasso){
+      model_cv = glmnet::cv.glmnet(
+        x = as.matrix(scale(X)[,-1]),
+        y = as.vector(scale(y)),
+        intercept = T,
+        folds = 5,
+        type.measure = "deviance",
+        family = "gaussian",
+        weights = Z,
+        #lambda = seq((ncol(X)-1)/100, (ncol(X)-1)/10, length.out = 30),
+        alpha = 1,
+        tresh = 1E-10
+      )
+
+      penalty = model_cv$lambda.1se
+      beta = coef(model_cv, s = "lambda.1se") |> as.vector()
+
+      beta[beta!=0] = solve(Matrix::t(X[,beta!=0])%*%Matrix::Diagonal(x = Z)%*%X[,beta!=0])%*%(Matrix::t(X[,beta!=0])%*%Matrix::Matrix(Z*y))
+
+      if(!any(is.na(alpha))){
+        model_cv_alpha = glmnet::cv.glmnet(
+          x = as.matrix(scale(R)[,-1]),
+          y = as.numeric(class),
+          intercept = T,
+          folds = 5,
+          type.measure = "deviance",
+          family = "multinomial",
+          alpha = 1,
+          tresh = 1E-10
+        )
+        alphaNovo = coef(model_cv_alpha, s = "lambda.1se")
+        alphaNovo = alphaNovo$`1` |> as.vector()
+        alphaNovo[alphaNovo!=0] = alpha[alphaNovo!=0] + 4*solve(t(as.matrix(R[,alphaNovo!=0]))%*%as.matrix(R[,alphaNovo!=0]))%*%(t(as.matrix(R[,alphaNovo!=0]))%*%(Z - P))
+      }else{
+        alphaNovo = rep(NA, ncol(R))
+      }
+
+    }else{
+      beta = solve(Matrix::t(X)%*%Matrix::Diagonal(x = Z)%*%X)%*%(Matrix::t(X)%*%Matrix::Matrix(Z*y))
+      penalty = 0
+    }
+  }
+
+  sigma = sqrt(sum(Z*(y - as.vector(X%*%beta))^2)/sum(Z))
 
   list(params = c(beta = as.matrix(beta), sigma = sigma, alpha = alphaNovo))
 }
@@ -55,11 +137,25 @@ estimaTeta.MoET = function(y, X, Z, K, R, alpha, P){
 }
 .S3method("estimaTeta", "MoET", estimaTeta.MoET)
 
-estimaTeta.MixSN = function(y, X, medias, Z, t1, t2, deltaAtual){
+estimaTeta.MixSN = function(y, X, medias, Z, t1, t2, deltaAtual, lasso){
 
   X = Matrix::Matrix(X, sparse = T)
 
-  beta = solve(Matrix::t(X)%*%Matrix::Diagonal(x = Z)%*%X)%*%(Matrix::t(X)%*%Matrix::Matrix(Z*(y-(deltaAtual*t1))))
+  if(is.null(lasso) || lasso == F){
+    beta = solve(Matrix::t(X)%*%Matrix::Diagonal(x = Z)%*%X)%*%(Matrix::t(X)%*%Matrix::Matrix(Z*(y-(deltaAtual*t1))))
+    penalty = 0
+  }else{
+    if(lasso){
+      y_trans = Matrix::Matrix(y-(deltaAtual*t1))
+
+      model = glmnet::cv.glmnet(x = as.matrix(scale(X)), y = as.vector(y_trans),
+                                weights = Z, nfolds = 5, intercept=FALSE)
+      beta = as.vector(coef(model))
+      beta = beta[-1]
+      penalty = model$lambda.min
+    }
+  }
+
   medias = (X%*%beta)
   res = y-as.numeric(medias)
   delta = sum(Z*t1*res)/sum(Z*t2)
@@ -68,7 +164,7 @@ estimaTeta.MixSN = function(y, X, medias, Z, t1, t2, deltaAtual){
   lambda = delta/sqrt(gama)
   sigma =sqrt(delta**2 + gama)
 
-  c(beta = as.matrix(beta), delta = delta, gama = gama, sigma = sigma, lambda = lambda)
+  c(beta = as.matrix(beta), delta = delta, gama = gama, sigma = sigma, lambda = lambda, penalty = penalty/gama)
 }
 .S3method("estimaTeta", "MixSN", estimaTeta.MixSN)
 
