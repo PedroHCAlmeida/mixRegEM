@@ -10,7 +10,8 @@ search(
   family = "MixNormal",
   criteria = "BIC",
   verbose = F,
-  best = F
+  best = F,
+  max_iters_search = 5
 )
 }
 \arguments{

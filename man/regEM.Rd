@@ -15,7 +15,9 @@ regEM(
   max_iter = 1000,
   min_iter = 1,
   verbose = F,
-  showSE = F
+  showSE = F,
+  aitken = F,
+  mcFirst = F
 )
 }
 \arguments{
