@@ -156,7 +156,7 @@ regEM = function(y, x, g = 2, ..., tol = 1E-6, family = "MixNormal",
   ll[3] = vero(y, medias, paramsAtual, args)
 
   Par = c(paramsAtual$params[,!colnames(paramsAtual$params) %in% c("delta", "gama", "penaltys")])
-  nPar = length(Par[!is.na(Par)])-sum(paramsAtual$params==0, na.rm = T)
+  nPar = length(Par[!is.na(Par)])-sum(Par==0, na.rm = T)
 
   if(is.null(args$nuFixo) & !is.null(args$nuIgual) & grepl("t|T", family)){
     if(args$nuIgual == T) nPar = nPar-args$g+1
